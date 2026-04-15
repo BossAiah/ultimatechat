@@ -1,696 +1,228 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Circle Chat · Private Secure Room</title>
-    <!-- Emoji Picker (simple but effective) -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
-        }
+<meta charset="UTF-8">
+<title>Circle Chat</title>
 
-        body {
-            background: #0a0c12;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 16px;
-        }
+<style>
+body {
+  margin:0;
+  font-family: Arial;
+  background:#0f0f0f;
+  color:white;
+}
 
-        /* main app container */
-        .chat-app {
-            width: 100%;
-            max-width: 550px;
-            height: 85vh;
-            min-height: 560px;
-            background: #111217;
-            border-radius: 32px;
-            box-shadow: 0 25px 45px -12px rgba(0, 0, 0, 0.8);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            border: 1px solid #2a2e3a;
-        }
+#login, #chat, #admin {
+  display:none;
+  height:100vh;
+}
 
-        /* header */
-        .chat-header {
-            background: #0f0f14;
-            padding: 18px 22px;
-            border-bottom: 1px solid #23262f;
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            flex-wrap: wrap;
-        }
-        .title-section h2 {
-            color: #f0f3fa;
-            font-size: 1.6rem;
-            letter-spacing: -0.3px;
-            font-weight: 600;
-        }
-        .title-section p {
-            color: #7f8c9a;
-            font-size: 0.75rem;
-            margin-top: 4px;
-        }
-        .user-badge {
-            background: #1e212b;
-            padding: 6px 14px;
-            border-radius: 60px;
-            color: #b9c3db;
-            font-size: 0.85rem;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .user-badge i {
-            color: #4c9aff;
-        }
-        .admin-icon {
-            background: #2a2c38;
-            margin-left: 8px;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .admin-icon:hover {
-            background: #3a3e4c;
-        }
+.center {
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  flex-direction:column;
+  height:100%;
+}
 
-        /* message container */
-        .messages-area {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px 18px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            background: #0c0e13;
-            scroll-behavior: smooth;
-        }
-        .message-bubble {
-            max-width: 78%;
-            display: flex;
-            flex-direction: column;
-            animation: fadeSlide 0.2s ease;
-        }
-        .my-message {
-            align-self: flex-end;
-        }
-        .other-message {
-            align-self: flex-start;
-        }
-        .bubble {
-            padding: 10px 16px;
-            border-radius: 24px;
-            background: #1e212b;
-            color: #eef2ff;
-            word-wrap: break-word;
-            font-size: 0.95rem;
-            line-height: 1.4;
-            box-shadow: 0 1px 1px rgba(0,0,0,0.2);
-        }
-        .my-message .bubble {
-            background: #2b6ef0;
-            color: white;
-            border-bottom-right-radius: 6px;
-        }
-        .other-message .bubble {
-            background: #23262f;
-            border-bottom-left-radius: 6px;
-        }
-        .message-meta {
-            font-size: 0.7rem;
-            color: #6b7288;
-            margin-top: 5px;
-            margin-left: 12px;
-            margin-right: 12px;
-            display: flex;
-            gap: 12px;
-        }
-        .my-message .message-meta {
-            justify-content: flex-end;
-        }
-        .sender-name {
-            font-weight: 500;
-            color: #9aa4bf;
-        }
+input, button {
+  padding:10px;
+  margin:5px;
+  border:none;
+  border-radius:6px;
+}
 
-        /* input bar */
-        .input-bar {
-            background: #0f0f14;
-            padding: 14px 18px;
-            border-top: 1px solid #23262f;
-            display: flex;
-            gap: 12px;
-            align-items: center;
-        }
-        .input-bar input {
-            flex: 1;
-            background: #1a1d26;
-            border: none;
-            padding: 12px 18px;
-            border-radius: 40px;
-            color: white;
-            font-size: 0.95rem;
-            outline: none;
-            transition: 0.2s;
-        }
-        .input-bar input:focus {
-            background: #222531;
-            box-shadow: 0 0 0 2px #2b6ef066;
-        }
-        .input-bar button {
-            background: #2b6ef0;
-            border: none;
-            width: 44px;
-            height: 44px;
-            border-radius: 40px;
-            color: white;
-            font-size: 1.2rem;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .input-bar button:hover {
-            background: #1e5ad9;
-        }
-        .emoji-btn {
-            background: #23262f !important;
-            color: #ffcd4a !important;
-        }
-        /* admin modal */
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.8);
-            backdrop-filter: blur(6px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            visibility: hidden;
-            opacity: 0;
-            transition: 0.2s;
-        }
-        .modal.active {
-            visibility: visible;
-            opacity: 1;
-        }
-        .modal-card {
-            background: #15171f;
-            max-width: 400px;
-            width: 90%;
-            border-radius: 32px;
-            padding: 28px 24px;
-            color: #eceeff;
-            border: 1px solid #2f3340;
-        }
-        .modal-card h3 {
-            margin-bottom: 20px;
-            font-weight: 600;
-        }
-        .modal-card input {
-            width: 100%;
-            background: #20232e;
-            border: none;
-            padding: 12px 16px;
-            margin: 12px 0;
-            border-radius: 60px;
-            color: white;
-        }
-        .modal-card button {
-            background: #2b6ef0;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 40px;
-            color: white;
-            margin-top: 12px;
-            margin-right: 10px;
-            cursor: pointer;
-        }
-        .close-modal {
-            background: #2f3542 !important;
-        }
-        .login-screen {
-            background: #0a0c12;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 100%;
-            height: 100vh;
-            position: fixed;
-            top:0;
-            left:0;
-            z-index: 1100;
-            transition: 0.2s;
-        }
-        .login-card {
-            background: #111217;
-            padding: 2rem;
-            border-radius: 48px;
-            width: 90%;
-            max-width: 360px;
-            text-align: center;
-            border: 1px solid #2a2e3a;
-        }
-        .login-card h1 {
-            color: white;
-            margin-bottom: 24px;
-        }
-        .login-card input {
-            width: 100%;
-            padding: 14px;
-            margin: 12px 0;
-            background: #1e212b;
-            border: none;
-            border-radius: 60px;
-            color: white;
-            font-size: 1rem;
-        }
-        .login-card button {
-            background: #2b6ef0;
-            width: 100%;
-            padding: 12px;
-            border-radius: 40px;
-            font-weight: bold;
-            margin-top: 10px;
-            border: none;
-            color: white;
-            font-size: 1rem;
-            cursor: pointer;
-        }
-        .error-msg {
-            color: #ff8080;
-            font-size: 0.8rem;
-            margin-top: 12px;
-        }
-        ::-webkit-scrollbar {
-            width: 5px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #0c0e13;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #2b2f3c;
-            border-radius: 10px;
-        }
-        .fa-trash-alt {
-            font-size: 0.7rem;
-            opacity: 0.6;
-            cursor: default;
-        }
-        @keyframes fadeSlide {
-            from { opacity: 0; transform: translateY(8px);}
-            to { opacity: 1; transform: translateY(0);}
-        }
-    </style>
+button {
+  background:#1f1f1f;
+  color:white;
+  cursor:pointer;
+}
+
+#chatBox {
+  height:80vh;
+  overflow-y:auto;
+  padding:10px;
+}
+
+.msg {
+  margin:5px 0;
+  padding:10px;
+  border-radius:10px;
+  max-width:60%;
+}
+
+.me {
+  background:#2563eb;
+  margin-left:auto;
+}
+
+.other {
+  background:#333;
+}
+
+#inputArea {
+  display:flex;
+  padding:10px;
+}
+
+#inputArea input {
+  flex:1;
+}
+</style>
 </head>
+
 <body>
 
-<!-- LOGIN SCREEN -->
-<div id="loginScreen" class="login-screen">
-    <div class="login-card">
-        <h1>⚡ CIRCLE CHAT</h1>
-        <input type="text" id="loginUsername" placeholder="Username" autocomplete="off">
-        <input type="password" id="loginPassword" placeholder="Password">
-        <button id="doLoginBtn">➤ ENTER PRIVATE ROOM</button>
-        <div id="loginError" class="error-msg"></div>
-        <div style="margin-top: 16px; font-size:12px; color:#5a6072;">🔒 secure 2-person chat · messages vanish after 2min</div>
-    </div>
+<!-- LOGIN -->
+<div id="login" class="center">
+  <h2>Circle Chat</h2>
+  <input id="username" placeholder="Username">
+  <input id="password" type="password" placeholder="Password">
+  <button onclick="login()">Login</button>
 </div>
 
-<!-- MAIN CHAT INTERFACE -->
-<div id="chatApp" class="chat-app" style="display: none;">
-    <div class="chat-header">
-        <div class="title-section">
-            <h2>circle chat <span style="font-size: 1rem;">🟢</span></h2>
-            <p>private · ephemeral 2min</p>
-        </div>
-        <div style="display: flex; align-items: center; gap: 8px;">
-            <div class="user-badge" id="currentUserBadge">
-                <i class="fas fa-user-circle"></i> <span id="currentUsernameDisplay">User</span>
-            </div>
-            <div class="user-badge admin-icon" id="adminPanelBtn">
-                <i class="fas fa-crown"></i> <span style="font-size:12px;">admin</span>
-            </div>
-        </div>
-    </div>
+<!-- CHAT -->
+<div id="chat">
+  <div id="chatBox"></div>
 
-    <div class="messages-area" id="messagesContainer">
-        <!-- dynamic messages -->
-        <div style="text-align:center; color:#4b5565; margin-top:30px;">✨ loading secure messages ...</div>
-    </div>
-
-    <div class="input-bar">
-        <button id="emojiPickerBtn" class="emoji-btn"><i class="far fa-smile-wink"></i></button>
-        <input type="text" id="messageInput" placeholder="Type a message ..." autocomplete="off">
-        <button id="sendMsgBtn"><i class="fas fa-paper-plane"></i></button>
-    </div>
+  <div id="inputArea">
+    <input id="msg" placeholder="Type message... 😊">
+    <button onclick="sendMsg()">Send</button>
+  </div>
 </div>
 
-<!-- ADMIN MODAL (reset pwd / change username) -->
-<div id="adminModal" class="modal">
-    <div class="modal-card">
-        <h3><i class="fas fa-shield-alt"></i> Admin Controls</h3>
-        <label>Change User27's name:</label>
-        <input type="text" id="adminNewUser27Name" placeholder="New username for User27">
-        <label>Change User09's name:</label>
-        <input type="text" id="adminNewUser09Name" placeholder="New username for User09">
-        <label>Reset Password (both users):</label>
-        <input type="text" id="adminNewPassword" placeholder="New password (default: thewayyou)">
-        <div style="margin-top: 16px;">
-            <button id="adminSaveBtn"><i class="fas fa-save"></i> Apply Changes</button>
-            <button id="adminCloseBtn" class="close-modal">Cancel</button>
-        </div>
-        <p style="font-size: 12px; margin-top: 16px; color:#8f9bb3;">⚠️ changes affect login credentials & display names</p>
-    </div>
+<!-- ADMIN -->
+<div id="admin" class="center">
+  <h2>Admin Panel</h2>
+  <input id="newUser1" placeholder="User27 name">
+  <input id="newUser2" placeholder="User09 name">
+  <input id="newPass" placeholder="New Password">
+  <button onclick="updateUsers()">Update</button>
+  <button onclick="logout()">Back</button>
 </div>
 
-<script>
-    // ----------------------------- FIREBASE INIT (your config) -------------------------
-    const firebaseConfig = {
-        apiKey: "AIzaSyCW71xwMV6DS6ggu-Q-TXX8OeKW-aWUKuY",
-        authDomain: "chatapp-1dabd.firebaseapp.com",
-        projectId: "chatapp-1dabd",
-        storageBucket: "chatapp-1dabd.firebasestorage.app",
-        messagingSenderId: "203806709864",
-        appId: "1:203806709864:web:f739450e99bcb5964043dd",
-        measurementId: "G-YE19PXXBEZ"
-    };
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    // Initialize Firebase
-    const app = firebase.initializeApp(firebaseConfig);
-    const analytics = firebase.analytics(app);
-    const db = firebase.firestore();
+const firebaseConfig = {
+  apiKey: "AIzaSyCW71xwMV6DS6ggu-Q-TXX8OeKW-aWUKuY",
+  authDomain: "chatapp-1dabd.firebaseapp.com",
+  projectId: "chatapp-1dabd",
+  storageBucket: "chatapp-1dabd.firebasestorage.app",
+  messagingSenderId: "203806709864",
+  appId: "1:203806709864:web:f739450e99bcb5964043dd",
+  measurementId: "G-YE19PXXBEZ"
+};
 
-    // ----------------------------- GLOBALS -----------------------------
-    let currentUser = null;      // { username: "User27" or "User09", rawName: "User27", displayName: "User27" }
-    let realUsernames = {
-        "User27": "User27",   // original id -> current display name
-        "User09": "User09"
-    };
-    let currentPasswordHash = "thewayyou";   // default password stored plain (but in memory, not exposed)
-    // For simplicity we use password string (since only two persons, and admin resets it)
-    // But we must never leak in UI. We store hashed in concept but plain for logic; Firestore will store hashed? but no need, just local validation.
-    // Because only two users, we store password in variable, and admin can change it. We also persist password in localStorage? better to keep in firestore doc for consistency across reloads.
-    // To make password persistent after admin change and page refresh, we store credentials in Firestore document.
-    // Let's create a "config" document in Firestore: /adminSettings/config  -> { password: "thewayyou", user27Display: "User27", user09Display: "User09" }
-    
-    // Firestore references
-    const messagesRef = db.collection("private_messages");
-    const settingsRef = db.collection("adminSettings").doc("chatConfig");
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-    // Helper: ensure settings doc exists
-    async function initSettings() {
-        const docSnap = await settingsRef.get();
-        if (!docSnap.exists) {
-            await settingsRef.set({
-                password: "thewayyou",
-                user27Display: "User27",
-                user09Display: "User09"
-            });
-        } else {
-            const data = docSnap.data();
-            currentPasswordHash = data.password || "thewayyou";
-            realUsernames["User27"] = data.user27Display || "User27";
-            realUsernames["User09"] = data.user09Display || "User09";
-        }
-        // sync local realUsernames variable
-        const fresh = await settingsRef.get();
-        if (fresh.exists) {
-            currentPasswordHash = fresh.data().password;
-            realUsernames["User27"] = fresh.data().user27Display || "User27";
-            realUsernames["User09"] = fresh.data().user09Display || "User09";
-        }
-    }
+let currentUser = "";
 
-    // update settings from admin
-    async function updateAdminSettings(newPassword, newUser27Name, newUser09Name) {
-        let updateObj = {};
-        if (newPassword && newPassword.trim() !== "") updateObj.password = newPassword.trim();
-        if (newUser27Name && newUser27Name.trim() !== "") updateObj.user27Display = newUser27Name.trim();
-        if (newUser09Name && newUser09Name.trim() !== "") updateObj.user09Display = newUser09Name.trim();
-        if (Object.keys(updateObj).length > 0) {
-            await settingsRef.set(updateObj, { merge: true });
-            // reload local
-            const fresh = await settingsRef.get();
-            if (fresh.exists) {
-                currentPasswordHash = fresh.data().password;
-                if (fresh.data().user27Display) realUsernames["User27"] = fresh.data().user27Display;
-                if (fresh.data().user09Display) realUsernames["User09"] = fresh.data().user09Display;
-            }
-            // if current user's display name changed, update UI badge
-            if (currentUser) {
-                let freshDisplay = (currentUser.rawName === "User27") ? realUsernames["User27"] : realUsernames["User09"];
-                currentUser.displayName = freshDisplay;
-                document.getElementById("currentUsernameDisplay").innerText = freshDisplay;
-            }
-        }
-    }
+// DEFAULT USERS (hidden)
+let users = {
+  user1: "User27",
+  user2: "User09",
+  password: "thewayyou"
+};
 
-    // Login check
-    async function attemptLogin(username, password) {
-        await initSettings();  // ensure latest credentials
-        const normalizedUser = (username === "User27" || username === "User09") ? username : null;
-        if (!normalizedUser) {
-            return { success: false, msg: "Only 'User27' or 'User09' allowed." };
-        }
-        if (password !== currentPasswordHash) {
-            return { success: false, msg: "Invalid password." };
-        }
-        // success
-        let display = (normalizedUser === "User27") ? realUsernames["User27"] : realUsernames["User09"];
-        return { success: true, user: { rawName: normalizedUser, displayName: display } };
-    }
+// LOAD CUSTOM USERS
+async function loadUsers(){
+  const ref = doc(db,"config","users");
+  const snap = await getDoc(ref);
+  if(snap.exists()){
+    users = snap.data();
+  }
+}
+await loadUsers();
 
-    // message auto-delete: schedule deletion after 2 minutes from sent timestamp
-    function scheduleMessageDeletion(docId, createdAtTimestamp) {
-        const now = Date.now();
-        const elapsed = now - createdAtTimestamp;
-        const delay = Math.max(0, 120000 - elapsed); // 2 minutes = 120000ms
-        setTimeout(async () => {
-            try {
-                const msgDoc = await messagesRef.doc(docId).get();
-                if (msgDoc.exists) {
-                    await messagesRef.doc(docId).delete();
-                    // no need to re-render instantly, snapshot listener will update UI
-                }
-            } catch(e) { console.warn("deletion error", e); }
-        }, delay);
-    }
+// LOGIN
+window.login = function(){
+  const u = document.getElementById("username").value;
+  const p = document.getElementById("password").value;
 
-    // render messages in real-time
-    function startMessagesListener() {
-        // only query last 100 messages for performance, but deletion ensures old vanish
-        messagesRef.orderBy("timestamp", "asc").limit(100).onSnapshot((snapshot) => {
-            const container = document.getElementById("messagesContainer");
-            if (!container) return;
-            if (snapshot.empty) {
-                container.innerHTML = `<div style="text-align:center; color:#6c7289; margin-top:30px;">💬 No messages yet. Say something! (messages vanish after 2 min)</div>`;
-                return;
-            }
-            let html = '';
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                const senderRaw = data.senderRaw;
-                const senderDisplay = data.senderDisplay || senderRaw;
-                const text = data.text;
-                const timestamp = data.timestamp;
-                const isCurrent = (currentUser && currentUser.rawName === senderRaw);
-                const timeStr = new Date(timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-                html += `
-                    <div class="message-bubble ${isCurrent ? 'my-message' : 'other-message'}">
-                        <div class="bubble">${escapeHtml(text)}</div>
-                        <div class="message-meta">
-                            <span class="sender-name">${escapeHtml(senderDisplay)}</span>
-                            <span>${timeStr}</span>
-                            <span><i class="far fa-clock"></i> 2min auto-delete</span>
-                        </div>
-                    </div>
-                `;
-            });
-            container.innerHTML = html;
-            // scroll to bottom
-            container.scrollTop = container.scrollHeight;
-        }, (error) => {
-            console.error("Listener error", error);
-        });
-    }
+  if(p === users.password && (u === users.user1 || u === users.user2)){
+    currentUser = u;
+    document.getElementById("login").style.display="none";
+    document.getElementById("chat").style.display="block";
+    loadMessages();
+  }
+  else if(u === "admin" && p === "admin123"){
+    document.getElementById("login").style.display="none";
+    document.getElementById("admin").style.display="flex";
+  }
+  else{
+    alert("Invalid login");
+  }
+}
 
-    // send message
-    async function sendMessage(text) {
-        if (!text.trim()) return false;
-        if (!currentUser) return false;
-        const messageData = {
-            text: text.trim(),
-            senderRaw: currentUser.rawName,
-            senderDisplay: currentUser.displayName,
-            timestamp: Date.now(),
-        };
-        try {
-            const docRef = await messagesRef.add(messageData);
-            // schedule deletion for this new message after 2 minutes
-            scheduleMessageDeletion(docRef.id, messageData.timestamp);
-            return true;
-        } catch(e) {
-            console.error("send error", e);
-            return false;
-        }
-    }
+// SEND MESSAGE
+window.sendMsg = async function(){
+  const msg = document.getElementById("msg").value;
+  if(!msg) return;
 
-    // simple emoji picker: we just add a small picker panel? but for simplicity, we can insert a small set of common emojis or use a native picker? 
-    // I'll implement a light emoji menu that appends :smile: style? better: use a small dropdown of emojis.
-    // Create a floating emoji panel toggle.
-    function setupEmojiPicker() {
-        const emojiBtn = document.getElementById("emojiPickerBtn");
-        const msgInput = document.getElementById("messageInput");
-        if (!emojiBtn) return;
-        let emojiPanel = document.createElement("div");
-        emojiPanel.id = "emojiPanel";
-        emojiPanel.style.position = "absolute";
-        emojiPanel.style.bottom = "70px";
-        emojiPanel.style.right = "20px";
-        emojiPanel.style.background = "#1e212b";
-        emojiPanel.style.borderRadius = "28px";
-        emojiPanel.style.padding = "10px";
-        emojiPanel.style.display = "none";
-        emojiPanel.style.gridTemplateColumns = "repeat(6, 1fr)";
-        emojiPanel.style.gap = "8px";
-        emojiPanel.style.zIndex = "200";
-        emojiPanel.style.border = "1px solid #334155";
-        const emojis = ["😀","😊","😂","❤️","🔥","👍","🎉","✨","💯","🤣","😭","🥺","😎","💀","⭐","🍕"];
-        emojis.forEach(emo => {
-            const span = document.createElement("span");
-            span.textContent = emo;
-            span.style.fontSize = "1.6rem";
-            span.style.cursor = "pointer";
-            span.style.padding = "6px";
-            span.style.borderRadius = "50%";
-            span.onclick = () => {
-                msgInput.value += emo;
-                emojiPanel.style.display = "none";
-                msgInput.focus();
-            };
-            emojiPanel.appendChild(span);
-        });
-        document.querySelector(".chat-app").style.position = "relative";
-        document.querySelector(".chat-app").appendChild(emojiPanel);
-        emojiBtn.addEventListener("click", (e) => {
-            e.stopPropagation();
-            const isVisible = emojiPanel.style.display === "grid";
-            emojiPanel.style.display = isVisible ? "none" : "grid";
-        });
-        document.addEventListener("click", (e) => {
-            if (!emojiPanel.contains(e.target) && e.target !== emojiBtn) {
-                emojiPanel.style.display = "none";
-            }
-        });
-    }
+  await addDoc(collection(db,"messages"),{
+    text: msg,
+    user: currentUser,
+    time: Date.now()
+  });
 
-    function escapeHtml(str) {
-        if (!str) return '';
-        return str.replace(/[&<>]/g, function(m) {
-            if (m === '&') return '&amp;';
-            if (m === '<') return '&lt;';
-            if (m === '>') return '&gt;';
-            return m;
-        }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
-            return c;
-        });
-    }
+  document.getElementById("msg").value="";
+}
 
-    // admin modal logic
-    function initAdminModal() {
-        const modal = document.getElementById("adminModal");
-        const adminBtn = document.getElementById("adminPanelBtn");
-        const closeBtn = document.getElementById("adminCloseBtn");
-        const saveBtn = document.getElementById("adminSaveBtn");
-        adminBtn.addEventListener("click", () => {
-            if (currentUser && (currentUser.rawName === "User27" || currentUser.rawName === "User09")) {
-                // both users have admin rights? requirement: add admin access where he can reset password, change username. Both users are admins? but "admin access" typical owner. Since only two, both can act as admin.
-                modal.classList.add("active");
-                // prefill inputs with current display names
-                document.getElementById("adminNewUser27Name").value = realUsernames["User27"];
-                document.getElementById("adminNewUser09Name").value = realUsernames["User09"];
-                document.getElementById("adminNewPassword").value = "";
-            } else {
-                alert("Admin panel available for logged users only.");
-            }
-        });
-        closeBtn.addEventListener("click", () => modal.classList.remove("active"));
-        saveBtn.addEventListener("click", async () => {
-            const newPass = document.getElementById("adminNewPassword").value;
-            const newUser27 = document.getElementById("adminNewUser27Name").value;
-            const newUser09 = document.getElementById("adminNewUser09Name").value;
-            if (!newUser27.trim() || !newUser09.trim()) {
-                alert("Usernames cannot be empty.");
-                return;
-            }
-            await updateAdminSettings(newPass, newUser27, newUser09);
-            alert("✅ Admin changes applied! Passwords & display names updated.");
-            modal.classList.remove("active");
-            // if current user, refresh badge display
-            if (currentUser) {
-                let updatedDisplay = (currentUser.rawName === "User27") ? realUsernames["User27"] : realUsernames["User09"];
-                currentUser.displayName = updatedDisplay;
-                document.getElementById("currentUsernameDisplay").innerText = updatedDisplay;
-            }
-        });
-    }
+// LOAD MESSAGES REALTIME
+function loadMessages(){
+  const chatBox = document.getElementById("chatBox");
 
-    // login flow
-    document.getElementById("doLoginBtn").addEventListener("click", async () => {
-        const username = document.getElementById("loginUsername").value.trim();
-        const password = document.getElementById("loginPassword").value;
-        const errorDiv = document.getElementById("loginError");
-        const result = await attemptLogin(username, password);
-        if (result.success) {
-            currentUser = result.user;
-            // hide login, show chat
-            document.getElementById("loginScreen").style.display = "none";
-            document.getElementById("chatApp").style.display = "flex";
-            document.getElementById("currentUsernameDisplay").innerText = currentUser.displayName;
-            // start listener for messages
-            startMessagesListener();
-            // setup emoji & send logic
-            setupEmojiPicker();
-            initAdminModal();
-            // send message handler
-            const sendBtn = document.getElementById("sendMsgBtn");
-            const msgInput = document.getElementById("messageInput");
-            const sendHandler = async () => {
-                const txt = msgInput.value;
-                if (await sendMessage(txt)) msgInput.value = "";
-            };
-            sendBtn.onclick = sendHandler;
-            msgInput.addEventListener("keypress", (e) => {
-                if (e.key === "Enter") sendHandler();
-            });
-        } else {
-            errorDiv.innerText = result.msg;
-        }
+  onSnapshot(collection(db,"messages"),(snapshot)=>{
+    chatBox.innerHTML="";
+
+    snapshot.forEach(docSnap=>{
+      const data = docSnap.data();
+
+      // AUTO DELETE AFTER 2 MIN
+      if(Date.now() - data.time > 120000){
+        deleteDoc(doc(db,"messages",docSnap.id));
+        return;
+      }
+
+      const div = document.createElement("div");
+      div.className = "msg " + (data.user === currentUser ? "me":"other");
+      div.innerText = data.user + ": " + data.text;
+
+      chatBox.appendChild(div);
     });
 
-    // initial preload settings (ensure firestore config exists)
-    (async function preload() {
-        await initSettings();
-    })();
+    chatBox.scrollTop = chatBox.scrollHeight;
+  });
+}
 
-    // optional: prevent XSS and any injection
+// ADMIN UPDATE
+window.updateUsers = async function(){
+  const u1 = document.getElementById("newUser1").value;
+  const u2 = document.getElementById("newUser2").value;
+  const p = document.getElementById("newPass").value;
+
+  if(!u1 || !u2 || !p) return alert("Fill all");
+
+  await setDoc(doc(db,"config","users"),{
+    user1:u1,
+    user2:u2,
+    password:p
+  });
+
+  alert("Updated!");
+}
+
+// LOGOUT
+window.logout = function(){
+  location.reload();
+}
+
+// START
+document.getElementById("login").style.display="flex";
+
 </script>
 </body>
 </html>
