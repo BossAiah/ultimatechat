@@ -2,465 +2,421 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>HilomChat · Private Whisper</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <title>Messenger Live · Private Chat</title>
     <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
-            background: #000000;
-            min-height: 100vh;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif;
+            background: #0e0e10;
+            height: 100vh;
             display: flex;
-            justify-content: center;
             align-items: center;
-            padding: 12px;
+            justify-content: center;
+            overflow: hidden;
         }
 
-        /* smooth mobile scaling */
-        @media (max-width: 640px) {
-            body {
-                padding: 0;
-            }
-        }
-
-        /* ===== AUTH CARD ===== */
-        .auth-container {
-            background: #0c0c0e;
-            backdrop-filter: blur(0px);
-            border-radius: 40px;
-            padding: 2rem 1.6rem;
+        /* Messenger container */
+        .app-container {
             width: 100%;
-            max-width: 400px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05);
+            max-width: 500px;
+            height: 100vh;
+            background: #f8f9fc;
+            box-shadow: 0 0 30px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* screens */
+        .screen {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
             transition: all 0.2s ease;
-            border: 1px solid #222;
+            overflow-y: auto;
         }
 
-        .auth-container h2 {
-            color: white;
-            text-align: center;
-            margin-bottom: 0.5rem;
+        .hidden {
+            display: none !important;
+        }
+
+        /* auth panel (login) */
+        .auth-card {
+            background: white;
+            margin: auto 20px;
+            border-radius: 32px;
+            padding: 28px 24px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+        }
+
+        .auth-title {
+            font-size: 28px;
             font-weight: 700;
-            font-size: 2rem;
-            letter-spacing: -0.5px;
-        }
-
-        .auth-sub {
+            margin-bottom: 28px;
             text-align: center;
-            color: #8a8a9e;
-            font-size: 0.8rem;
-            margin-bottom: 2rem;
+            color: #1b2e4b;
         }
 
         .input-group {
-            margin-bottom: 1.2rem;
+            margin-bottom: 20px;
         }
 
         .input-group input {
             width: 100%;
-            padding: 16px 20px;
-            background: #121214;
-            border: 1px solid #2c2c30;
-            border-radius: 34px;
-            color: #f0f0f0;
-            font-size: 1rem;
+            padding: 14px 18px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 28px;
+            background: #f5f7fb;
             outline: none;
             transition: 0.2s;
         }
 
         .input-group input:focus {
-            border-color: #a855f7;
-            box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.2);
+            border-color: #0084ff;
+            background: white;
         }
 
-        button {
-            width: 100%;
-            padding: 14px;
-            background: #a855f7;
-            border: none;
-            border-radius: 44px;
+        .btn {
+            background: #0084ff;
             color: white;
-            font-weight: 700;
-            font-size: 1rem;
+            border: none;
+            padding: 14px;
+            width: 100%;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 16px;
             cursor: pointer;
             transition: 0.2s;
-            margin-top: 8px;
         }
 
-        button:active {
-            transform: scale(0.97);
+        .btn-danger {
+            background: #e34f4f;
         }
 
-        .toggle-link {
-            text-align: center;
-            margin-top: 1.2rem;
-            color: #8a8a9e;
-            font-size: 0.85rem;
+        .btn-outline {
+            background: transparent;
+            border: 1px solid #0084ff;
+            color: #0084ff;
         }
 
-        .toggle-link span {
-            color: #c084fc;
-            cursor: pointer;
-            font-weight: 500;
-        }
-
-        .error-msg {
-            background: rgba(255, 70, 70, 0.15);
-            color: #ffaeae;
-            padding: 10px;
-            border-radius: 40px;
-            text-align: center;
-            font-size: 0.8rem;
+        .error-text {
+            color: #d32f2f;
+            font-size: 13px;
             margin-top: 12px;
-            border: 1px solid #ff4d4d30;
+            text-align: center;
         }
 
-        /* ===== DASHBOARD (MAIN) ===== */
-        .dashboard {
-            display: none;
-            width: 100%;
-            max-width: 1500px;
-            height: 95vh;
-            background: #000000;
-            border-radius: 36px;
-            overflow: hidden;
-            box-shadow: 0 0 0 1px #222, 0 20px 40px rgba(0,0,0,0.6);
-            flex-direction: row;
-        }
-
-        /* SIDEBAR - mobile friendly, scroll */
-        .sidebar {
-            width: 290px;
-            background: #08080a;
-            border-right: 1px solid #1f1f24;
+        /* Main dashboard header */
+        .chat-header {
+            background: white;
+            padding: 14px 18px;
+            border-bottom: 1px solid #e9eaef;
             display: flex;
-            flex-direction: column;
-            overflow-y: auto;
-            flex-shrink: 0;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
         }
 
-        .user-info {
-            padding: 20px 18px;
-            border-bottom: 1px solid #1e1e24;
-            background: #030303;
-        }
-
-        .user-info h3 {
-            color: white;
-            font-size: 1.3rem;
+        .user-welcome {
             font-weight: 600;
-            word-break: break-word;
+            font-size: 16px;
+            background: #eef2f7;
+            padding: 6px 14px;
+            border-radius: 40px;
         }
 
-        .user-info p {
-            color: #9ca3af;
-            font-size: 0.7rem;
-            margin-top: 4px;
+        .logout-icon, .back-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        .logout-btn {
-            background: #2c2c34;
-            margin-top: 12px;
-            padding: 8px;
-            font-size: 0.8rem;
+        /* People list (active users) */
+        .people-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 0;
         }
 
         .section-title {
-            color: #a1a1aa;
-            font-size: 0.7rem;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            padding: 18px 20px 6px 20px;
+            font-size: 14px;
+            padding: 12px 18px 6px;
+            color: #6c757d;
+            font-weight: 500;
         }
 
-        .online-users-list {
-            list-style: none;
-            flex: 1;
-        }
-
-        .online-users-list li {
-            padding: 14px 20px;
+        .user-item {
             display: flex;
             align-items: center;
-            gap: 12px;
+            padding: 12px 18px;
+            gap: 14px;
+            border-bottom: 1px solid #efeff4;
             cursor: pointer;
-            transition: 0.1s;
-            border-bottom: 1px solid #16161c;
-            color: #e4e4e7;
+            transition: background 0.1s;
         }
 
-        .online-users-list li:active {
-            background: #1f1f2a;
+        .user-item:active {
+            background: #eef2fa;
         }
 
-        .active-chat-user {
-            background: #2a1e3c;
-            border-left: 3px solid #c084fc;
-        }
-
-        .status-dot {
-            width: 10px;
-            height: 10px;
-            background: #10b981;
+        .avatar {
+            width: 48px;
+            height: 48px;
+            background: #0084ff20;
             border-radius: 50%;
-            box-shadow: 0 0 2px #10b981;
-        }
-
-        .username-badge {
-            font-weight: 500;
-            flex: 1;
-            font-size: 0.9rem;
-        }
-
-        /* ADMIN PANEL - full control */
-        .admin-section {
-            margin-top: auto;
-            border-top: 1px solid #1f1f28;
-            padding: 16px;
-            background: #050507;
-        }
-
-        .admin-section h4 {
-            color: #c084fc;
-            font-size: 0.7rem;
-            margin-bottom: 12px;
-            letter-spacing: 0.5px;
-        }
-
-        .admin-section button {
-            background: #1e1e2a;
-            margin: 6px 0;
-            font-size: 0.75rem;
-            padding: 10px;
-        }
-
-        .admin-section .danger-btn {
-            background: #b91c1c;
-        }
-
-        .admin-section input {
-            width: 100%;
-            padding: 10px 14px;
-            margin: 6px 0;
-            background: #121214;
-            border: 1px solid #2a2a30;
-            color: white;
-            border-radius: 28px;
-            font-size: 0.8rem;
-        }
-
-        .user-list-admin {
-            max-height: 140px;
-            overflow-y: auto;
-            background: #0a0a0c;
-            border-radius: 20px;
-            padding: 6px;
-            margin: 8px 0;
-            font-size: 0.7rem;
-        }
-
-        .user-list-admin span {
-            display: inline-block;
-            background: #1f1f28;
-            padding: 4px 10px;
-            border-radius: 20px;
-            margin: 4px 6px;
-            color: #ddd;
-        }
-
-        /* CHAT AREA */
-        .chat-area {
-            flex: 1;
             display: flex;
-            flex-direction: column;
-            background: #000000;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 20px;
+            color: #0084ff;
         }
 
-        .chat-header {
-            padding: 18px 24px;
-            background: #08080c;
-            border-bottom: 1px solid #1f1f26;
-            color: #f0f0f0;
+        .user-info {
+            flex: 1;
+        }
+
+        .user-name {
             font-weight: 600;
-            font-size: 1rem;
+            font-size: 16px;
         }
 
-        .messages-container {
+        .user-status {
+            font-size: 12px;
+            color: #34c759;
+        }
+
+        /* chat conversation view */
+        .conversation-view {
             flex: 1;
-            overflow-y: auto;
-            padding: 20px 16px;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            background: #f8f9fc;
+        }
+
+        .chat-window {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
 
         .message-bubble {
             max-width: 80%;
-            padding: 12px 18px;
-            border-radius: 28px;
-            font-size: 0.9rem;
+            padding: 10px 14px;
+            border-radius: 22px;
+            font-size: 15px;
             word-wrap: break-word;
-            animation: fadeSlide 0.2s ease;
+            position: relative;
         }
 
-        .message-mine {
+        .message-sent {
             align-self: flex-end;
-            background: #a855f7;
+            background: #0084ff;
             color: white;
-            border-bottom-right-radius: 6px;
+            border-bottom-right-radius: 4px;
         }
 
-        .message-theirs {
+        .message-received {
             align-self: flex-start;
-            background: #1c1c22;
-            color: #efeff1;
-            border-bottom-left-radius: 6px;
+            background: white;
+            color: #1c1c1e;
+            border: 0.5px solid #e2e2e8;
+            border-bottom-left-radius: 4px;
         }
 
-        .message-info {
-            font-size: 0.65rem;
+        .message-meta {
+            font-size: 10px;
+            margin-top: 4px;
             opacity: 0.7;
-            margin-top: 6px;
             display: flex;
-            gap: 12px;
+            justify-content: flex-end;
+            gap: 6px;
         }
 
-        .delete-indicator {
-            font-size: 0.6rem;
-            color: #fbbf24;
-        }
-
-        .input-area {
+        .chat-input-area {
+            background: white;
+            padding: 10px 12px;
+            border-top: 1px solid #e9eaef;
             display: flex;
-            gap: 12px;
-            padding: 16px 18px;
-            background: #08080c;
-            border-top: 1px solid #1e1e24;
+            gap: 10px;
+            align-items: center;
         }
 
-        .input-area input {
+        .chat-input-area input {
             flex: 1;
-            padding: 14px 20px;
-            border-radius: 40px;
-            border: 1px solid #2c2c34;
-            background: #121214;
+            padding: 12px 16px;
+            border-radius: 30px;
+            border: 1px solid #ddd;
+            font-size: 15px;
+            background: #f8f9fc;
+        }
+
+        .send-btn {
+            background: #0084ff;
+            border: none;
+            width: 44px;
+            height: 44px;
+            border-radius: 30px;
             color: white;
-            outline: none;
-            font-size: 0.95rem;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
         }
 
-        .input-area button {
-            width: auto;
-            padding: 0 24px;
-            margin: 0;
-            background: #a855f7;
+        /* admin panel modal drawer */
+        .admin-drawer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 28px 28px 0 0;
+            max-height: 85%;
+            overflow-y: auto;
+            z-index: 1000;
+            padding: 20px;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
         }
 
-        @keyframes fadeSlide {
-            from { opacity: 0; transform: translateY(6px);}
-            to { opacity: 1; transform: translateY(0);}
+        .admin-drawer.hidden {
+            display: none;
         }
 
-        /* mobile responsive: sidebar shrinks */
-        @media (max-width: 700px) {
-            .sidebar {
-                width: 240px;
-            }
-            .message-bubble {
-                max-width: 88%;
-            }
-            .user-info h3 {
-                font-size: 1rem;
-            }
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
         }
 
-        @media (max-width: 550px) {
-            .dashboard {
-                border-radius: 0;
-                height: 100vh;
-            }
-            .sidebar {
-                width: 210px;
-            }
+        .admin-header {
+            font-weight: bold;
+            font-size: 20px;
+            margin-bottom: 16px;
         }
 
-        ::-webkit-scrollbar {
-            width: 4px;
+        .user-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
         }
-        ::-webkit-scrollbar-track {
-            background: #0a0a0c;
+
+        .small-btn {
+            background: #e34f4f;
+            padding: 6px 14px;
+            border-radius: 30px;
+            color: white;
+            border: none;
+            font-size: 12px;
+            margin-left: 6px;
         }
-        ::-webkit-scrollbar-thumb {
-            background: #3a3a44;
-            border-radius: 10px;
+
+        .close-admin {
+            background: #ccc;
+            margin-top: 12px;
+        }
+
+        .admin-pass {
+            font-size: 12px;
+            color: gray;
+        }
+
+        button {
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
-
-<div id="authPanel" class="auth-container">
-    <h2>🌙 hilomchat</h2>
-    <div class="auth-sub">whisper · vanish · private</div>
-    <div class="input-group">
-        <input type="text" id="authUsername" placeholder="username" autocomplete="off">
-    </div>
-    <div class="input-group">
-        <input type="password" id="authPassword" placeholder="password (min. 6 chars)">
-    </div>
-    <button id="loginBtn">→ enter chat</button>
-    <div class="toggle-link">
-        new soul? <span id="showRegister">create account</span>
-    </div>
-    <div id="authError" class="error-msg" style="display: none;"></div>
-</div>
-
-<div id="dashboard" class="dashboard">
-    <div class="sidebar">
-        <div class="user-info">
-            <h3 id="currentUserDisplay">...</h3>
-            <p id="userRoleDisplay">⚡ online</p>
-            <button id="logoutSideBtn" class="logout-btn">✖ disconnect</button>
-        </div>
-        <div class="section-title">🟢 online souls</div>
-        <ul id="onlineUsersList" class="online-users-list">
-            <li style="justify-content:center;">loading...</li>
-        </ul>
-
-        <!-- admin dashboard: full user list + extra controls -->
-        <div id="adminPanel" class="admin-section" style="display: none;">
-            <h4>🛡️ omniview · admin</h4>
-            <div><strong style="color:#ccc; font-size:0.7rem;">📋 existing users</strong></div>
-            <div id="adminUserListContainer" class="user-list-admin">loading users...</div>
-            <input type="text" id="adminDeleteUserInput" placeholder="username to delete">
-            <button id="adminDeleteUserBtn">🗑️ delete user & chats</button>
-            <button id="adminViewPasswordsBtn" style="background:#3b2e5e;">🔓 reveal all passwords</button>
-            <div id="passwordViewer" style="font-size:11px; color:#d4d4d8; margin-top:8px; background:#0f0f12; border-radius:20px; padding:8px;"></div>
-            <button id="adminDeleteAllChatsBtn" class="danger-btn">⚠️ wipe ALL messages</button>
+<div class="app-container" id="appRoot">
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen" class="screen">
+        <div class="auth-card">
+            <div class="auth-title">Messenger Live</div>
+            <div class="input-group"><input type="text" id="loginUsername" placeholder="Username" autocomplete="off"></div>
+            <div class="input-group"><input type="password" id="loginPassword" placeholder="Password"></div>
+            <button class="btn" id="doLoginBtn">Sign in</button>
+            <div id="loginError" class="error-text"></div>
+            <div style="margin-top: 16px; font-size:12px; text-align:center; color:#aaa;">New? Just create account</div>
         </div>
     </div>
 
-    <div class="chat-area">
-        <div class="chat-header" id="chatHeader">💬 tap a user to start private chat</div>
-        <div id="messagesContainer" class="messages-container">
-            <div style="text-align:center; color:#52525b;">select someone from sidebar</div>
+    <!-- MAIN DASHBOARD: users list & chat -->
+    <div id="dashboardScreen" class="screen hidden">
+        <div class="chat-header">
+            <button id="adminBtnHeader" class="logout-icon" style="font-size:22px;">⚙️</button>
+            <span class="user-welcome" id="currentUsernameDisplay">User</span>
+            <button id="logoutBtnMain" class="logout-icon">🚪</button>
         </div>
-        <div class="input-area">
-            <input type="text" id="messageInput" placeholder="message..." disabled>
-            <button id="sendMsgBtn" disabled>send</button>
+
+        <!-- PEOPLE LIST (active users) -->
+        <div id="peopleListContainer" class="people-list">
+            <div class="section-title">Active Contacts</div>
+            <div id="usersList"></div>
         </div>
+    </div>
+
+    <!-- CHAT CONVERSATION VIEW (private chat) -->
+    <div id="chatViewScreen" class="screen hidden">
+        <div class="chat-header">
+            <button id="backToPeopleBtn" class="back-btn">←</button>
+            <span id="chatWithName" style="font-weight:600;">Chat</span>
+            <div style="width:40px;"></div>
+        </div>
+        <div class="conversation-view">
+            <div id="chatMessagesArea" class="chat-window"></div>
+            <div class="chat-input-area">
+                <input type="text" id="messageInput" placeholder="Message...">
+                <button id="sendMessageBtn" class="send-btn">➤</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- admin drawer -->
+    <div id="adminOverlay" class="overlay hidden"></div>
+    <div id="adminDrawer" class="admin-drawer hidden">
+        <div class="admin-header">👑 Admin Control</div>
+        <div id="adminUsersList"></div>
+        <div id="adminChatsSection" style="margin-top: 20px;">
+            <div style="font-weight:600;">All Private Chats (delete any)</div>
+            <div id="adminChatsList"></div>
+        </div>
+        <button id="closeAdminDrawer" class="btn close-admin" style="background:#aaa;">Close</button>
     </div>
 </div>
 
 <script>
-    // Firebase init with given config
+    // ------------------- FIREBASE INIT -------------------
     const firebaseConfig = {
         apiKey: "AIzaSyCW71xwMV6DS6ggu-Q-TXX8OeKW-aWUKuY",
         authDomain: "chatapp-1dabd.firebaseapp.com",
@@ -470,311 +426,401 @@
         appId: "1:203806709864:web:f739450e99bcb5964043dd",
         measurementId: "G-YE19PXXBEZ"
     };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+    const app = firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    const auth = firebase.auth();
 
-    let currentUser = null;
-    let currentChatPartner = null;
-    let unsubscribeMessages = null;
-    let onlineUnsub = null;
-    let adminUsersUnsub = null;
+    // Global state
+    let currentUser = null;       // { username, password, isAdmin }
+    let activeChatPartner = null; // username of person we're chatting with
+    let currentChatRef = null;    // database reference for messages
+    let messageTimeoutIds = new Map(); // store timeouts per messageId
 
-    // helpers
-    function showError(msg, isAuth = true) {
-        const errDiv = document.getElementById('authError');
-        if (isAuth && errDiv) {
-            errDiv.style.display = 'block';
-            errDiv.innerText = msg;
-            setTimeout(() => errDiv.style.display = 'none', 2800);
+    // Helper: sanitize
+    function sanitize(str) { return str.replace(/[.#$[\]]/g, '_'); }
+
+    // User presence: go online/offline
+    function setUserOnline(username, isOnline) {
+        if (!username) return;
+        const userStatusRef = database.ref('users/' + sanitize(username));
+        if (isOnline) {
+            userStatusRef.update({ username: username, online: true, lastSeen: Date.now() });
+            const connRef = database.ref('.info/connected');
+            connRef.on('value', (snap) => {
+                if (snap.val() === true) {
+                    userStatusRef.update({ online: true });
+                    userStatusRef.onDisconnect().update({ online: false, lastSeen: Date.now() });
+                }
+            });
         } else {
-            alert(msg);
+            userStatusRef.update({ online: false, lastSeen: Date.now() });
         }
     }
 
-    async function authenticate(username, password, isRegister = false) {
-        const userRef = db.collection('users').doc(username);
-        const doc = await userRef.get();
-        if (isRegister) {
-            if (doc.exists) { showError('username exists · try login'); return false; }
-            if (password.length < 6) { showError('password must be ≥6 characters'); return false; }
-            await userRef.set({
-                username, password,
-                role: username === 'admin' ? 'admin' : 'user',
-                online: true,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                lastSeen: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            currentUser = { username, role: username === 'admin' ? 'admin' : 'user' };
-            return true;
-        } else {
-            if (!doc.exists) { showError('user not found · register first'); return false; }
-            const data = doc.data();
-            if (data.password !== password) { showError('wrong password'); return false; }
-            currentUser = { username, role: data.role || 'user' };
-            await userRef.update({ online: true, lastSeen: firebase.firestore.FieldValue.serverTimestamp() });
-            return true;
-        }
+    // Create new user account
+    async function registerUser(username, password) {
+        const usersRef = database.ref('users/' + sanitize(username));
+        const snapshot = await usersRef.once('value');
+        if (snapshot.exists()) throw new Error('Username taken');
+        if (password.length < 6) throw new Error('Password must be at least 6 digits');
+        await usersRef.set({
+            username: username,
+            password: password,
+            online: true,
+            isAdmin: (username === 'admin'),   // admin only if admin
+            createdAt: Date.now()
+        });
+        return true;
     }
 
-    async function setOnline(status) {
-        if (!currentUser) return;
-        await db.collection('users').doc(currentUser.username).update({ online: status, lastSeen: firebase.firestore.FieldValue.serverTimestamp() });
-    }
-
-    // realtime online users + admin user list refresh
-    function listenOnlineAndUsers() {
-        if (onlineUnsub) onlineUnsub();
-        onlineUnsub = db.collection('users').where('online', '==', true).onSnapshot(snapshot => {
-            const userListEl = document.getElementById('onlineUsersList');
-            if (!userListEl) return;
-            const usersOnline = [];
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                if (data.username !== currentUser?.username) usersOnline.push({ username: data.username, role: data.role });
-            });
-            if (usersOnline.length === 0) {
-                userListEl.innerHTML = '<li style="justify-content:center; color:#52525b;">no one else online</li>';
-                return;
+    // Login logic
+    async function loginUser(username, password) {
+        const usersRef = database.ref('users');
+        const snapshot = await usersRef.once('value');
+        const users = snapshot.val();
+        if (!users) throw new Error('No users');
+        for (let key in users) {
+            if (users[key].username === username && users[key].password === password) {
+                return { username: username, isAdmin: users[key].isAdmin === true, password: password };
             }
-            userListEl.innerHTML = '';
-            usersOnline.forEach(user => {
-                const li = document.createElement('li');
-                li.innerHTML = `<span class="status-dot"></span><span class="username-badge">${escapeHtml(user.username)}</span>`;
-                li.addEventListener('click', () => {
-                    if (currentChatPartner === user.username) return;
-                    if (unsubscribeMessages) unsubscribeMessages();
-                    currentChatPartner = user.username;
-                    document.getElementById('chatHeader').innerHTML = `💬 chatting with ${escapeHtml(currentChatPartner)} · messages vanish in 2min`;
-                    document.getElementById('messageInput').disabled = false;
-                    document.getElementById('sendMsgBtn').disabled = false;
-                    loadPrivateMessages(currentUser.username, currentChatPartner);
-                    highlightActiveUser(currentChatPartner);
-                });
-                if (currentChatPartner === user.username) li.classList.add('active-chat-user');
-                userListEl.appendChild(li);
-            });
-        });
-
-        // if admin, listen to all users for "existing users" display
-        if (currentUser?.role === 'admin') {
-            if (adminUsersUnsub) adminUsersUnsub();
-            adminUsersUnsub = db.collection('users').onSnapshot(snap => {
-                const container = document.getElementById('adminUserListContainer');
-                if (!container) return;
-                let allUsersHtml = '';
-                snap.forEach(doc => {
-                    const data = doc.data();
-                    allUsersHtml += `<span>${escapeHtml(data.username)} ${data.online ? '🟢' : '⚫'}</span>`;
-                });
-                container.innerHTML = allUsersHtml || '<span>no users</span>';
-            });
         }
+        throw new Error('Invalid credentials');
     }
 
-    function highlightActiveUser(partner) {
-        const items = document.querySelectorAll('#onlineUsersList li');
-        items.forEach(li => {
-            const span = li.querySelector('.username-badge');
-            if (span && span.innerText === partner) li.classList.add('active-chat-user');
-            else li.classList.remove('active-chat-user');
+    // Load active users list (online true)
+    function loadActiveUsers() {
+        if (!currentUser) return;
+        const usersRef = database.ref('users');
+        usersRef.on('value', (snapshot) => {
+            const users = snapshot.val();
+            const activeUsers = [];
+            for (let key in users) {
+                const u = users[key];
+                if (u.username && u.username !== currentUser.username && u.online === true) {
+                    activeUsers.push({ username: u.username, online: true });
+                }
+            }
+            renderUsersList(activeUsers);
+            if (currentUser.isAdmin) document.getElementById('adminBtnHeader').style.display = 'flex';
+            else document.getElementById('adminBtnHeader').style.display = 'none';
         });
     }
 
-    function generateChatId(u1, u2) {
-        return [u1, u2].sort().join('_');
-    }
-
-    async function deleteExpiredMessagesForChat(chatId) {
-        const msgCol = db.collection('privateMessages').doc(chatId).collection('messages');
-        const now = firebase.firestore.Timestamp.now();
-        const expired = await msgCol.where('expiresAt', '<=', now).get();
-        expired.forEach(d => d.ref.delete());
-    }
-
-    function loadPrivateMessages(userA, userB) {
-        const chatId = generateChatId(userA, userB);
-        const msgRef = db.collection('privateMessages').doc(chatId).collection('messages');
-        if (unsubscribeMessages) unsubscribeMessages();
-        unsubscribeMessages = msgRef.orderBy('timestamp', 'asc').onSnapshot(async snapshot => {
-            const container = document.getElementById('messagesContainer');
-            if (!container) return;
-            container.innerHTML = '';
-            // also trigger cleanup on load
-            await deleteExpiredMessagesForChat(chatId);
-            snapshot.forEach(doc => {
-                const msg = doc.data();
-                if (msg.expiresAt && msg.expiresAt.toMillis() < Date.now()) return;
-                const isMine = msg.sender === currentUser.username;
-                const bubble = document.createElement('div');
-                bubble.classList.add('message-bubble', isMine ? 'message-mine' : 'message-theirs');
-                let timeStr = msg.timestamp ? new Date(msg.timestamp.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'now';
-                bubble.innerHTML = `
-                    <div>${escapeHtml(msg.text)}</div>
-                    <div class="message-info">
-                        <span>${escapeHtml(msg.sender)}</span>
-                        <span>${timeStr}</span>
-                        <span class="delete-indicator">🗑️ 2min auto-delete</span>
-                    </div>
-                `;
-                container.appendChild(bubble);
+    function renderUsersList(users) {
+        const container = document.getElementById('usersList');
+        if (!container) return;
+        if (users.length === 0) {
+            container.innerHTML = '<div style="padding:20px; text-align:center; color:gray;">No active users</div>';
+            return;
+        }
+        container.innerHTML = users.map(u => `
+            <div class="user-item" data-username="${u.username}">
+                <div class="avatar">${u.username.charAt(0).toUpperCase()}</div>
+                <div class="user-info">
+                    <div class="user-name">${escapeHtml(u.username)}</div>
+                    <div class="user-status">● Active now</div>
+                </div>
+            </div>
+        `).join('');
+        // attach click listeners
+        document.querySelectorAll('.user-item').forEach(el => {
+            el.addEventListener('click', (e) => {
+                const partner = el.getAttribute('data-username');
+                openPrivateChat(partner);
             });
-            container.scrollTop = container.scrollHeight;
         });
     }
 
+    function escapeHtml(str) { return str.replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+
+    // open chat with specific user
+    function openPrivateChat(partnerUsername) {
+        if (!currentUser) return;
+        activeChatPartner = partnerUsername;
+        document.getElementById('dashboardScreen').classList.add('hidden');
+        document.getElementById('chatViewScreen').classList.remove('hidden');
+        document.getElementById('chatWithName').innerText = partnerUsername;
+        // load messages
+        const chatId = generateChatId(currentUser.username, partnerUsername);
+        const messagesRef = database.ref('chats/' + chatId + '/messages');
+        if (currentChatRef) currentChatRef.off();
+        currentChatRef = messagesRef;
+        // clear old timeouts for this chat
+        // attach listener
+        messagesRef.on('value', (snap) => {
+            const msgs = snap.val();
+            renderChatMessages(msgs, partnerUsername);
+            // Auto-delete after 2 minutes for each new message (already handled on send)
+            // But also ensure after load any pending expiry
+            if(msgs){
+                Object.keys(msgs).forEach(msgId => {
+                    const msg = msgs[msgId];
+                    if(msg && msg.timestamp && !msg._deleted){
+                        const age = Date.now() - msg.timestamp;
+                        if(age >= 120000){
+                            messagesRef.child(msgId).remove();
+                        } else {
+                            const remaining = 120000 - age;
+                            if(!messageTimeoutIds.has(msgId)){
+                                const tid = setTimeout(() => {
+                                    messagesRef.child(msgId).remove();
+                                    messageTimeoutIds.delete(msgId);
+                                }, remaining);
+                                messageTimeoutIds.set(msgId, tid);
+                            }
+                        }
+                    }
+                });
+            }
+        });
+        // scroll bottom
+        setTimeout(() => scrollChatBottom(), 50);
+    }
+
+    function generateChatId(userA, userB) {
+        let u1 = userA, u2 = userB;
+        if (u1 > u2) [u1, u2] = [u2, u1];
+        return sanitize(u1) + '_' + sanitize(u2);
+    }
+
+    function renderChatMessages(messagesObj, partner) {
+        const container = document.getElementById('chatMessagesArea');
+        if (!container) return;
+        if (!messagesObj) {
+            container.innerHTML = '<div style="text-align:center; color:gray;">No messages yet. Say hi!</div>';
+            return;
+        }
+        let messagesArray = Object.keys(messagesObj).map(key => ({ id: key, ...messagesObj[key] }));
+        messagesArray.sort((a,b)=> a.timestamp - b.timestamp);
+        if(messagesArray.length === 0){
+            container.innerHTML = '<div style="text-align:center; color:gray;">No messages yet. Say hi!</div>';
+            return;
+        }
+        container.innerHTML = messagesArray.map(msg => {
+            const isSent = msg.sender === currentUser.username;
+            return `<div class="message-bubble ${isSent ? 'message-sent' : 'message-received'}">
+                        <div>${escapeHtml(msg.text)}</div>
+                        <div class="message-meta">${new Date(msg.timestamp).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div>
+                    </div>`;
+        }).join('');
+        scrollChatBottom();
+    }
+
+    function scrollChatBottom() {
+        const area = document.getElementById('chatMessagesArea');
+        if(area) area.scrollTop = area.scrollHeight;
+    }
+
+    // send message (auto delete after 2 min)
     async function sendMessage(text) {
-        if (!text.trim() || !currentChatPartner || !currentUser) return;
-        const chatId = generateChatId(currentUser.username, currentChatPartner);
-        const msgCol = db.collection('privateMessages').doc(chatId).collection('messages');
-        const expiresAt = firebase.firestore.Timestamp.fromDate(new Date(Date.now() + 2 * 60 * 1000));
-        await msgCol.add({
-            sender: currentUser.username,
-            receiver: currentChatPartner,
+        if(!text.trim()) return;
+        if(!activeChatPartner) return;
+        const chatId = generateChatId(currentUser.username, activeChatPartner);
+        const messagesRef = database.ref('chats/' + chatId + '/messages');
+        const newMsgRef = messagesRef.push();
+        const messageObj = {
             text: text.trim(),
-            timestamp: firebase.firestore.Timestamp.now(),
-            expiresAt: expiresAt
+            sender: currentUser.username,
+            receiver: activeChatPartner,
+            timestamp: Date.now(),
+        };
+        await newMsgRef.set(messageObj);
+        // schedule auto deletion after 2 minutes (120000ms)
+        const msgId = newMsgRef.key;
+        const timeoutId = setTimeout(async () => {
+            await newMsgRef.remove();
+            messageTimeoutIds.delete(msgId);
+        }, 120000);
+        messageTimeoutIds.set(msgId, timeoutId);
+        document.getElementById('messageInput').value = '';
+        scrollChatBottom();
+    }
+
+    // ADMIN functions: delete user & all chats, view passwords, delete any chat
+    async function adminDeleteUser(targetUsername) {
+        if(!currentUser.isAdmin) return;
+        if(targetUsername === currentUser.username) { alert("Cannot delete yourself"); return; }
+        // remove user from users node
+        await database.ref('users/' + sanitize(targetUsername)).remove();
+        // find all chat rooms containing this user and delete them
+        const chatsRef = database.ref('chats');
+        const snapshot = await chatsRef.once('value');
+        const chats = snapshot.val();
+        if(chats){
+            for(let chatId in chats){
+                if(chatId.includes(sanitize(targetUsername))){
+                    await chatsRef.child(chatId).remove();
+                }
+            }
+        }
+        alert(`User ${targetUsername} deleted.`);
+        if(activeChatPartner === targetUsername) backToPeople();
+    }
+
+    async function adminDeleteChatRoom(chatId) {
+        if(!currentUser.isAdmin) return;
+        await database.ref('chats/' + chatId).remove();
+        alert("Chat room deleted");
+        if(activeChatPartner){
+            const currentChatId = generateChatId(currentUser.username, activeChatPartner);
+            if(currentChatId === chatId){
+                backToPeople();
+            }
+        }
+        loadAdminPanel();
+    }
+
+    async function loadAdminPanel() {
+        if(!currentUser.isAdmin) return;
+        // load all users with passwords
+        const usersSnap = await database.ref('users').once('value');
+        const users = usersSnap.val() || {};
+        const userListDiv = document.getElementById('adminUsersList');
+        userListDiv.innerHTML = '<div style="font-weight:500;">👥 All Users & passwords</div>';
+        for(let key in users){
+            const u = users[key];
+            if(u.username){
+                const row = document.createElement('div');
+                row.className = 'user-row';
+                row.innerHTML = `<div><strong>${escapeHtml(u.username)}</strong> <span class="admin-pass">pw: ${u.password}</span> ${u.isAdmin ? '👑' : ''}</div>
+                                 <div><button class="small-btn delete-user-btn" data-user="${u.username}">Delete user</button></div>`;
+                userListDiv.appendChild(row);
+            }
+        }
+        document.querySelectorAll('.delete-user-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const uname = btn.getAttribute('data-user');
+                if(confirm(`Delete ${uname} and all their messages?`)) adminDeleteUser(uname);
+            });
         });
-        // Cleanup expired messages after send
-        setTimeout(() => deleteExpiredMessagesForChat(chatId), 100);
+
+        // all chat rooms
+        const chatsSnap = await database.ref('chats').once('value');
+        const chats = chatsSnap.val() || {};
+        const chatsDiv = document.getElementById('adminChatsList');
+        chatsDiv.innerHTML = '<div style="font-weight:500; margin-top:10px;">🗑️ All Conversations</div>';
+        for(let chatId in chats){
+            const participants = chatId.replace(/_/g,' & ');
+            const msgCount = chats[chatId].messages ? Object.keys(chats[chatId].messages).length : 0;
+            const chatElem = document.createElement('div');
+            chatElem.className = 'user-row';
+            chatElem.innerHTML = `<div><strong>💬 ${participants}</strong> (${msgCount} msgs)</div>
+                                  <button class="small-btn delete-chat-btn" data-chat="${chatId}" style="background:#ff8c42;">Delete chat</button>`;
+            chatsDiv.appendChild(chatElem);
+        }
+        document.querySelectorAll('.delete-chat-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const cid = btn.getAttribute('data-chat');
+                if(confirm(`Delete entire conversation?`)) adminDeleteChatRoom(cid);
+            });
+        });
     }
 
-    // periodic global cleanup every 25s
-    setInterval(async () => {
-        if (!currentUser) return;
-        const allChats = await db.collection('privateMessages').get();
-        for (const chatDoc of allChats.docs) {
-            const msgCol = db.collection('privateMessages').doc(chatDoc.id).collection('messages');
-            const now = firebase.firestore.Timestamp.now();
-            const expired = await msgCol.where('expiresAt', '<=', now).get();
-            expired.forEach(d => d.ref.delete());
-        }
-        if (currentChatPartner && unsubscribeMessages) {
-            loadPrivateMessages(currentUser.username, currentChatPartner);
-        }
-    }, 25000);
+    function backToPeople() {
+        if(currentChatRef) currentChatRef.off();
+        currentChatRef = null;
+        activeChatPartner = null;
+        document.getElementById('chatViewScreen').classList.add('hidden');
+        document.getElementById('dashboardScreen').classList.remove('hidden');
+        loadActiveUsers();
+    }
 
-    // --- ADMIN POWER FUNCTIONS ---
-    async function adminDeleteUser(username) {
-        if (currentUser?.role !== 'admin') return;
-        if (username === currentUser.username) { alert("can't delete yourself"); return; }
-        if (!confirm(`delete user "${username}" and ALL private messages?`)) return;
-        await db.collection('users').doc(username).delete();
-        const allChats = await db.collection('privateMessages').get();
-        for (const chat of allChats.docs) {
-            if (chat.id.includes(username)) {
-                await db.collection('privateMessages').doc(chat.id).delete();
+    function logout() {
+        if(currentUser){
+            setUserOnline(currentUser.username, false);
+        }
+        if(currentChatRef) currentChatRef.off();
+        currentUser = null;
+        activeChatPartner = null;
+        messageTimeoutIds.forEach(tid => clearTimeout(tid));
+        messageTimeoutIds.clear();
+        document.getElementById('dashboardScreen').classList.add('hidden');
+        document.getElementById('chatViewScreen').classList.add('hidden');
+        document.getElementById('loginScreen').classList.remove('hidden');
+        document.getElementById('loginUsername').value = '';
+        document.getElementById('loginPassword').value = '';
+        document.getElementById('loginError').innerText = '';
+    }
+
+    // ---------- EVENT LISTENERS ----------
+    document.getElementById('doLoginBtn').addEventListener('click', async () => {
+        const username = document.getElementById('loginUsername').value.trim();
+        const pwd = document.getElementById('loginPassword').value.trim();
+        if(!username || !pwd) { document.getElementById('loginError').innerText = 'Enter username/password'; return; }
+        try {
+            let userData;
+            try {
+                userData = await loginUser(username, pwd);
+            } catch(e) {
+                // try register if not exists
+                await registerUser(username, pwd);
+                userData = { username, isAdmin: (username === 'admin'), password: pwd };
+            }
+            currentUser = userData;
+            // set online
+            await database.ref('users/' + sanitize(username)).set({ username, password: pwd, online: true, isAdmin: currentUser.isAdmin, lastSeen: Date.now() });
+            setUserOnline(username, true);
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('dashboardScreen').classList.remove('hidden');
+            document.getElementById('currentUsernameDisplay').innerText = username;
+            loadActiveUsers();
+            // setup admin header
+            if(currentUser.isAdmin){
+                document.getElementById('adminBtnHeader').style.display = 'flex';
             } else {
-                // also delete subcollection messages if user appears inside? but we delete full chat later if user participant. Simpler: delete any message where sender/receiver = username
-                const subMsgs = await db.collection('privateMessages').doc(chat.id).collection('messages').where('sender', '==', username).get();
-                subMsgs.forEach(m => m.ref.delete());
-                const subMsgs2 = await db.collection('privateMessages').doc(chat.id).collection('messages').where('receiver', '==', username).get();
-                subMsgs2.forEach(m => m.ref.delete());
+                document.getElementById('adminBtnHeader').style.display = 'none';
             }
-        }
-        alert(`🧹 ${username} erased.`);
-        if (currentChatPartner === username) {
-            currentChatPartner = null;
-            document.getElementById('chatHeader').innerHTML = '💬 select someone';
-            document.getElementById('messageInput').disabled = true;
-            document.getElementById('sendMsgBtn').disabled = true;
-            if (unsubscribeMessages) unsubscribeMessages();
-            document.getElementById('messagesContainer').innerHTML = '<div style="text-align:center; color:#52525b;">chat closed</div>';
-        }
-    }
-
-    async function adminViewPasswords() {
-        if (currentUser?.role !== 'admin') return;
-        const snapshot = await db.collection('users').get();
-        let list = '';
-        snapshot.forEach(d => { list += `${d.data().username} : ${d.data().password}\n`; });
-        const viewer = document.getElementById('passwordViewer');
-        viewer.innerText = list || 'no users found';
-        setTimeout(() => { if (viewer) viewer.innerText = ''; }, 6000);
-    }
-
-    async function adminDeleteAllChats() {
-        if (currentUser?.role !== 'admin') return;
-        if (!confirm('⚠️ PERMANENT: delete EVERY private message in hilomchat? this action cannot be undone.')) return;
-        const allChatRooms = await db.collection('privateMessages').get();
-        for (const room of allChatRooms.docs) {
-            const sub = await db.collection('privateMessages').doc(room.id).collection('messages').get();
-            for (const msgDoc of sub.docs) await msgDoc.ref.delete();
-            await room.ref.delete();
-        }
-        alert('all whispers have been silenced (deleted).');
-        if (currentChatPartner && unsubscribeMessages) loadPrivateMessages(currentUser.username, currentChatPartner);
-    }
-
-    // seed default accounts: admin, User27, User09
-    async function seedDefaults() {
-        const defaults = [
-            { username: 'admin', password: '181818', role: 'admin' },
-            { username: 'User27', password: 'thewayyou', role: 'user' },
-            { username: 'User09', password: 'thewayyou', role: 'user' }
-        ];
-        for (const acc of defaults) {
-            const ref = db.collection('users').doc(acc.username);
-            const snap = await ref.get();
-            if (!snap.exists) {
-                await ref.set({ ...acc, online: false, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-            }
-        }
-    }
-    seedDefaults();
-
-    // ---- UI EVENT BINDINGS ----
-    document.getElementById('loginBtn').addEventListener('click', async () => {
-        const username = document.getElementById('authUsername').value.trim();
-        const password = document.getElementById('authPassword').value;
-        if (!username || !password) { showError('fill both fields'); return; }
-        const isRegisterMode = document.getElementById('authUsername').dataset.mode === 'register';
-        const ok = await authenticate(username, password, isRegisterMode);
-        if (ok) {
-            await setOnline(true);
-            document.getElementById('authPanel').style.display = 'none';
-            document.getElementById('dashboard').style.display = 'flex';
-            document.getElementById('currentUserDisplay').innerText = currentUser.username;
-            document.getElementById('userRoleDisplay').innerHTML = currentUser.role === 'admin' ? '👑 admin · full control' : '🌙 member';
-            if (currentUser.role === 'admin') {
-                document.getElementById('adminPanel').style.display = 'block';
-            } else {
-                document.getElementById('adminPanel').style.display = 'none';
-            }
-            listenOnlineAndUsers();
-            window.addEventListener('beforeunload', () => setOnline(false));
+        } catch(err) {
+            document.getElementById('loginError').innerText = err.message;
         }
     });
 
-    document.getElementById('showRegister').addEventListener('click', () => {
-        document.getElementById('loginBtn').innerText = '✨ register account';
-        document.getElementById('authUsername').dataset.mode = 'register';
-        document.getElementById('showRegister').innerText = 'back to login';
-        document.getElementById('showRegister').id = 'showLogin';
-        document.getElementById('showLogin').addEventListener('click', () => location.reload());
-    });
-
-    document.getElementById('logoutSideBtn').addEventListener('click', async () => {
-        if (currentUser) await setOnline(false);
-        location.reload();
-    });
-
-    document.getElementById('sendMsgBtn').addEventListener('click', async () => {
+    document.getElementById('logoutBtnMain').addEventListener('click', logout);
+    document.getElementById('backToPeopleBtn').addEventListener('click', backToPeople);
+    document.getElementById('sendMessageBtn').addEventListener('click', () => {
         const inp = document.getElementById('messageInput');
-        await sendMessage(inp.value);
-        inp.value = '';
+        sendMessage(inp.value);
     });
-    document.getElementById('messageInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('sendMsgBtn').click(); });
-
-    // admin listeners
-    document.getElementById('adminDeleteUserBtn')?.addEventListener('click', () => {
-        const uname = document.getElementById('adminDeleteUserInput').value.trim();
-        if (uname) adminDeleteUser(uname);
-        else alert('enter username');
+    document.getElementById('messageInput').addEventListener('keypress', (e) => {
+        if(e.key === 'Enter') sendMessage(e.target.value);
     });
-    document.getElementById('adminViewPasswordsBtn')?.addEventListener('click', adminViewPasswords);
-    document.getElementById('adminDeleteAllChatsBtn')?.addEventListener('click', adminDeleteAllChats);
+    // admin drawer
+    const adminBtn = document.getElementById('adminBtnHeader');
+    const adminDrawer = document.getElementById('adminDrawer');
+    const overlay = document.getElementById('adminOverlay');
+    adminBtn.addEventListener('click', async () => {
+        if(!currentUser.isAdmin) return;
+        await loadAdminPanel();
+        adminDrawer.classList.remove('hidden');
+        overlay.classList.remove('hidden');
+    });
+    function closeAdmin() {
+        adminDrawer.classList.add('hidden');
+        overlay.classList.add('hidden');
+    }
+    document.getElementById('closeAdminDrawer').addEventListener('click', closeAdmin);
+    overlay.addEventListener('click', closeAdmin);
 
-    function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+    // default accounts: admin/181818 & User27/thewayyou & User09/thewayyou
+    window.addEventListener('load', async () => {
+        const preset = [
+            { username: 'admin', password: '181818', isAdmin: true },
+            { username: 'User27', password: 'thewayyou', isAdmin: false },
+            { username: 'User09', password: 'thewayyou', isAdmin: false }
+        ];
+        for(let acc of preset){
+            const snap = await database.ref('users/' + sanitize(acc.username)).once('value');
+            if(!snap.exists()){
+                await database.ref('users/' + sanitize(acc.username)).set({
+                    username: acc.username,
+                    password: acc.password,
+                    isAdmin: acc.isAdmin,
+                    online: false,
+                });
+            }
+        }
+        console.log('preset accounts ready');
+    });
 </script>
 </body>
 </html>
