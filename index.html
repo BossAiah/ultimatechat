@@ -83,10 +83,9 @@ button { background:#00c853; color:white; }
 
 </div>
 
-<!-- FIREBASE (MODERN VERSION) -->
 <script type="module">
 
-// 🔥 IMPORTS
+// ✅ CORRECT FIREBASE IMPORTS (CDN)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
   getFirestore,
@@ -102,15 +101,14 @@ import {
   setDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// 🔥 PASTE YOUR CONFIG HERE
+// ✅ YOUR CONFIG (FIXED)
 const firebaseConfig = {
   apiKey: "AIzaSyCW71xwMV6DS6ggu-Q-TXX8OeKW-aWUKuY",
   authDomain: "chatapp-1dabd.firebaseapp.com",
   projectId: "chatapp-1dabd",
   storageBucket: "chatapp-1dabd.firebasestorage.app",
   messagingSenderId: "203806709864",
-  appId: "1:203806709864:web:f739450e99bcb5964043dd",
-  measurementId: "G-YE19PXXBEZ"
+  appId: "1:203806709864:web:f739450e99bcb5964043dd"
 };
 
 // INIT
@@ -121,8 +119,8 @@ let currentUser = "";
 
 // LOGIN
 window.login = async function(){
-  const u = document.getElementById("user").value;
-  const p = document.getElementById("pass").value;
+  const u = user.value;
+  const p = pass.value;
 
   const ref = doc(db, "users", u);
   const snap = await getDoc(ref);
@@ -158,7 +156,7 @@ window.sendMsg = async function(){
   msg.value = "";
 }
 
-// REALTIME LISTENER
+// REALTIME CHAT
 function loadMessages(){
   const q = query(collection(db, "messages"), orderBy("time"));
 
@@ -185,7 +183,7 @@ window.logout = function(){
   location.reload();
 }
 
-// ADMIN: CLEAR CHAT
+// ADMIN FUNCTIONS
 window.clearChat = async function(){
   const snap = await getDocs(collection(db, "messages"));
   snap.forEach(async d => {
@@ -194,12 +192,10 @@ window.clearChat = async function(){
   alert("All messages cleared");
 }
 
-// GENERATE PASSWORD
 function genPass(){
   return Math.random().toString(36).slice(-8);
 }
 
-// ADD USER
 window.addUser = async function(){
   const name = newUser.value.trim();
   if(!name) return;
@@ -213,7 +209,6 @@ window.addUser = async function(){
   newPass.innerText = "User: "+name+" | Pass: "+pass;
 }
 
-// DELETE USER
 window.deleteUser = async function(){
   const name = delUser.value.trim();
   if(!name) return;
