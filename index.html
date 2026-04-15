@@ -2,19 +2,20 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1.0">
     <title>Hilom · Private Chat</title>
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-    <!-- Emoji Picker (lightweight) -->
+    <!-- Font Awesome for icons & emoji helper -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
@@ -28,7 +29,7 @@
             padding: 0;
         }
 
-        /* Phone-like container */
+        /* Phone-only container - exactly like mobile app */
         #app {
             width: 100%;
             max-width: 500px;
@@ -38,11 +39,10 @@
             flex-direction: column;
             box-shadow: 0 0 20px rgba(0,0,0,0.5);
             position: relative;
-            border-radius: 0;
             overflow: hidden;
         }
 
-        /* squarish edges but phone friendly */
+        /* Squarish edges chat convos */
         .chat-header, .auth-header, .admin-header {
             background-color: #1a1a1a;
             padding: 16px 18px;
@@ -51,6 +51,7 @@
             justify-content: space-between;
             align-items: center;
             color: white;
+            flex-shrink: 0;
         }
 
         .chat-header h2, .auth-header h2 {
@@ -69,28 +70,32 @@
             gap: 12px;
             font-size: 0.85rem;
             color: #ccc;
+            flex-shrink: 0;
+            -webkit-overflow-scrolling: touch;
         }
 
         .user-chip {
             background: #1f1f1f;
-            padding: 5px 12px;
+            padding: 8px 16px;
             border-radius: 40px;
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
             cursor: pointer;
             transition: 0.1s;
             color: #eee;
+            font-size: 0.9rem;
+            touch-action: manipulation;
         }
 
         .user-chip.active {
-            background: #2c2c2c;
+            background: #2c5a7a;
             border-left: 2px solid #3b82f6;
         }
 
         .online-dot {
-            width: 8px;
-            height: 8px;
+            width: 10px;
+            height: 10px;
             background-color: #22c55e;
             border-radius: 50%;
             display: inline-block;
@@ -106,14 +111,14 @@
             padding: 16px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
             background-color: #0a0a0a;
         }
 
         .message-bubble {
             max-width: 85%;
             padding: 10px 14px;
-            border-radius: 18px;
+            border-radius: 20px;
             font-size: 0.95rem;
             word-wrap: break-word;
             background-color: #1f2a3a;
@@ -140,6 +145,8 @@
             color: #9ca3af;
             padding: 6px 16px;
             font-style: italic;
+            background: #0a0a0a;
+            flex-shrink: 0;
         }
 
         .chat-input-area {
@@ -149,13 +156,14 @@
             display: flex;
             gap: 10px;
             align-items: center;
+            flex-shrink: 0;
         }
 
         .chat-input-area input {
             flex: 1;
             background: #1e1e1e;
             border: none;
-            padding: 12px 14px;
+            padding: 14px 16px;
             border-radius: 28px;
             color: white;
             font-size: 1rem;
@@ -166,15 +174,16 @@
             background: #2c3e50;
             border: none;
             color: white;
-            padding: 10px 16px;
+            padding: 12px 18px;
             border-radius: 40px;
             cursor: pointer;
             font-size: 1.2rem;
+            touch-action: manipulation;
         }
 
         .emoji-btn {
             background: #1e1e1e;
-            padding: 8px 12px;
+            padding: 12px 16px;
         }
 
         button {
@@ -194,16 +203,16 @@
         .auth-card {
             background: #1a1a1a;
             border-radius: 28px;
-            padding: 28px 20px;
+            padding: 32px 24px;
             display: flex;
             flex-direction: column;
-            gap: 18px;
+            gap: 20px;
         }
 
         .auth-card input {
             background: #2a2a2a;
             border: none;
-            padding: 14px 18px;
+            padding: 16px 20px;
             border-radius: 30px;
             color: white;
             font-size: 1rem;
@@ -211,11 +220,12 @@
 
         .auth-card button {
             background: #2563eb;
-            padding: 12px;
+            padding: 14px;
             border-radius: 40px;
             font-weight: bold;
             border: none;
             color: white;
+            font-size: 1rem;
         }
 
         .switch-auth {
@@ -238,11 +248,12 @@
 
         .admin-btn {
             background: #2d3748;
-            padding: 8px 14px;
+            padding: 10px 16px;
             border-radius: 30px;
             border: none;
             color: white;
             font-size: 0.8rem;
+            touch-action: manipulation;
         }
 
         .danger-btn {
@@ -264,7 +275,7 @@
         .user-item {
             display: flex;
             justify-content: space-between;
-            padding: 8px;
+            padding: 12px;
             border-bottom: 1px solid #2c2c2c;
             color: white;
         }
@@ -274,9 +285,9 @@
             text-align: center;
             color: #4b5563;
             padding: 8px;
+            flex-shrink: 0;
         }
 
-        /* Hide default hints */
         input::placeholder {
             color: #6b7280;
         }
@@ -285,19 +296,22 @@
             display: none;
         }
 
-        i, .fa, .fas {
-            pointer-events: none;
-        }
-
-        button i {
-            pointer-events: none;
-        }
-
         .back-chat {
             background: none;
             border: none;
             color: white;
-            font-size: 1.2rem;
+            font-size: 1.3rem;
+            cursor: pointer;
+            padding: 8px;
+        }
+
+        /* Better touch targets */
+        button, .user-chip, .admin-btn {
+            min-height: 44px;
+        }
+        
+        .chat-messages::-webkit-scrollbar {
+            width: 4px;
         }
     </style>
 </head>
@@ -305,7 +319,7 @@
 <div id="app"></div>
 
 <script>
-    // Firebase config (provided)
+    // Firebase configuration (provided)
     const firebaseConfig = {
         apiKey: "AIzaSyCW71xwMV6DS6ggu-Q-TXX8OeKW-aWUKuY",
         authDomain: "chatapp-1dabd.firebaseapp.com",
@@ -319,23 +333,22 @@
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
+    
+    // Enable offline persistence (keeps user logged in)
+    db.enablePersistence({ synchronizeTabs: true }).catch(err => console.warn(err));
 
-    // Enable Firestore persistence so user stays logged in after refresh
-    db.enablePersistence({ synchronizeTabs: true }).catch(err => { if (err.code == 'failed-precondition') console.warn(err); });
-
-    // Helper: default users (pre-created)
+    // Default users
     const DEFAULT_USERS = [
         { username: "User27", password: "thewayyou" },
         { username: "User09", password: "thewayyou" }
     ];
 
-    // Helper to seed default users if not exist (Firestore 'users' collection)
+    // Seed default users & admin
     async function seedDefaultUsers() {
         const usersRef = db.collection("users");
         for (let u of DEFAULT_USERS) {
             const snapshot = await usersRef.where("username", "==", u.username).get();
             if (snapshot.empty) {
-                // store hashed-like (plain for simplicity but demo, but for functionality we store raw? safer store plain but it's local demo)
                 await usersRef.doc(u.username).set({
                     username: u.username,
                     password: u.password,
@@ -343,12 +356,9 @@
                     isAdmin: false
                 });
             } else {
-                // ensure password matches in case update
-                const doc = snapshot.docs[0];
-                await doc.ref.update({ password: u.password });
+                await snapshot.docs[0].ref.update({ password: u.password });
             }
         }
-        // Admin account
         const adminSnap = await usersRef.where("username", "==", "admin").get();
         if (adminSnap.empty) {
             await usersRef.doc("admin").set({
@@ -363,283 +373,113 @@
     }
     seedDefaultUsers();
 
-    // ---------- Global State ----------
-    let currentUser = null;          // { username, isAdmin }
-    let currentChatPartner = null;   // username of the person we chat with
+    // Global state
+    let currentUser = null;
+    let currentChatPartner = null;
     let unsubscribeMessages = null;
     let typingTimeout = null;
     let typingListenerUnsub = null;
+    let heartbeatInterval = null;
+    let presenceUnsub = null;
 
-    // DOM root
     const appDiv = document.getElementById("app");
 
-    // Render functions
-    function renderAuth() {
-        appDiv.innerHTML = `
-            <div class="auth-container">
-                <div class="auth-header" style="background:transparent; border:none; justify-content:center;">
-                    <h2>Hilom</h2>
-                </div>
-                <div class="auth-card">
-                    <input type="text" id="loginUsername" placeholder="Username" autocomplete="off">
-                    <input type="password" id="loginPassword" placeholder="Password" autocomplete="off">
-                    <button id="loginBtn">Log in</button>
-                    <div class="switch-auth">No account? <span id="showSignup">Create account</span></div>
-                </div>
-                <div class="footer-note">private · end-to-end style</div>
-            </div>
-        `;
-        document.getElementById("loginBtn").onclick = () => handleLogin();
-        document.getElementById("showSignup").onclick = () => renderSignup();
-        const inputUser = document.getElementById("loginUsername");
-        const inputPass = document.getElementById("loginPassword");
-        const doLogin = () => handleLogin();
-        inputUser.addEventListener("keypress", (e) => e.key === "Enter" && doLogin());
-        inputPass.addEventListener("keypress", (e) => e.key === "Enter" && doLogin());
-    }
-
-    async function handleLogin() {
-        const username = document.getElementById("loginUsername").value.trim();
-        const password = document.getElementById("loginPassword").value.trim();
-        if (!username || !password) return alert("Enter credentials");
-        const usersRef = db.collection("users");
-        const snapshot = await usersRef.where("username", "==", username).get();
-        if (snapshot.empty) return alert("User not found");
-        const userDoc = snapshot.docs[0];
-        const data = userDoc.data();
-        if (data.password !== password) return alert("Wrong password");
-        // Login success: store in localStorage + session
-        currentUser = { username: data.username, isAdmin: data.isAdmin || false };
-        localStorage.setItem("hilom_user", JSON.stringify({ username: currentUser.username, isAdmin: currentUser.isAdmin }));
-        // set presence online
-        await db.collection("presence").doc(currentUser.username).set({
-            username: currentUser.username,
-            lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-            online: true
+    // Helper: escape HTML
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+            return c;
         });
-        // remove presence on disconnect
-        const presenceRef = db.collection("presence").doc(currentUser.username);
-        if (navigator.onLine) {
-            window.addEventListener("beforeunload", () => {
-                presenceRef.update({ online: false, lastSeen: firebase.firestore.FieldValue.serverTimestamp() });
-            });
-        }
-        renderMainDashboard();
     }
 
-    async function handleSignup(username, password) {
-        if (!username || !password) return alert("Fill both fields");
-        const usersRef = db.collection("users");
-        const existing = await usersRef.where("username", "==", username).get();
-        if (!existing.empty) return alert("Username taken");
-        await usersRef.doc(username).set({
-            username: username,
-            password: password,
-            isAdmin: false,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        alert("Account created! Please login.");
-        renderAuth();
+    // Generate consistent chat room ID
+    function getChatRoomId(user1, user2) {
+        return [user1, user2].sort().join("_");
     }
 
-    function renderSignup() {
-        appDiv.innerHTML = `
-            <div class="auth-container">
-                <div class="auth-header" style="background:transparent; border:none;">
-                    <button class="back-chat" id="backToLogin"><i class="fas fa-arrow-left"></i></button>
-                    <h2>Sign up</h2>
-                </div>
-                <div class="auth-card">
-                    <input type="text" id="signupUsername" placeholder="Username">
-                    <input type="password" id="signupPassword" placeholder="Password">
-                    <button id="signupBtn">Create Account</button>
-                </div>
-            </div>
-        `;
-        document.getElementById("signupBtn").onclick = async () => {
-            const u = document.getElementById("signupUsername").value.trim();
-            const p = document.getElementById("signupPassword").value.trim();
-            await handleSignup(u, p);
+    // Send message with auto-delete after 3 minutes
+    async function sendPrivateMessage(receiver, text) {
+        if (!text.trim() || !currentUser) return false;
+        const roomId = getChatRoomId(currentUser.username, receiver);
+        const messagesRef = db.collection("chats").doc(roomId).collection("messages");
+        const newMsg = {
+            sender: currentUser.username,
+            receiver: receiver,
+            text: text.trim(),
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            expireAt: Date.now() + 180000 // 3 minutes marker
         };
-        document.getElementById("backToLogin").onclick = () => renderAuth();
+        const docRef = await messagesRef.add(newMsg);
+        // Schedule deletion after 3 minutes (180000 ms)
+        setTimeout(async () => {
+            try {
+                const msgDoc = await messagesRef.doc(docRef.id).get();
+                if (msgDoc.exists) await messagesRef.doc(docRef.id).delete();
+            } catch(e) { console.warn("Delete error"); }
+        }, 180000);
+        return true;
     }
 
-    async function renderMainDashboard() {
-        if (!currentUser) {
-            renderAuth();
-            return;
-        }
-        // Update online presence heartbeat
-        const presenceHeartbeat = setInterval(async () => {
-            if (currentUser) {
-                await db.collection("presence").doc(currentUser.username).set({
-                    username: currentUser.username,
-                    lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-                    online: true
-                }, { merge: true });
-            }
-        }, 20000);
-        window.heartbeatInterval = presenceHeartbeat;
-
-        // load active users & chat UI
-        appDiv.innerHTML = `
-            <div class="chat-header">
-                <h2>Hilom</h2>
-                <div>
-                    <span style="font-size:0.8rem;">${currentUser.username}</span>
-                    <button id="logoutBtn" style="background:none; border:none; color:gray; margin-left:12px;"><i class="fas fa-sign-out-alt"></i></button>
-                    ${currentUser.isAdmin ? '<button id="adminPanelBtn" style="background:none; border:none; color:#facc15; margin-left:8px;"><i class="fas fa-user-shield"></i></button>' : ''}
-                </div>
-            </div>
-            <div id="activeUsersContainer" class="active-users-panel">Loading users...</div>
-            <div id="chatMessagesArea" class="chat-messages">
-                <div style="text-align:center; color:#6b7280;">Select a user to start chatting</div>
-            </div>
-            <div id="typingStatus" class="typing-indicator"></div>
-            <div class="chat-input-area">
-                <button id="emojiButton" class="emoji-btn"><i class="far fa-smile-wink"></i></button>
-                <input type="text" id="messageInput" placeholder="Message..." autocomplete="off">
-                <button id="sendMsgBtn"><i class="fas fa-paper-plane"></i></button>
-            </div>
-            <div class="footer-note">Messages disappear after 3 mins</div>
-        `;
-
-        document.getElementById("logoutBtn").onclick = async () => {
-            if (currentUser) await db.collection("presence").doc(currentUser.username).update({ online: false, lastSeen: firebase.firestore.FieldValue.serverTimestamp() });
-            currentUser = null;
-            localStorage.removeItem("hilom_user");
-            if (window.heartbeatInterval) clearInterval(window.heartbeatInterval);
-            if (unsubscribeMessages) unsubscribeMessages();
-            renderAuth();
-        };
-        if (currentUser.isAdmin) {
-            document.getElementById("adminPanelBtn").onclick = () => renderAdminDashboard();
-        }
-        // load active users list realtime
-        const activeContainer = document.getElementById("activeUsersContainer");
-        const presenceUnsub = db.collection("presence").onSnapshot(snapshot => {
-            const usersList = [];
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                if (data.username !== currentUser.username) {
-                    let lastSeen = data.lastSeen?.toDate() || new Date();
-                    let activeAgo = Math.floor((new Date() - lastSeen) / 60000);
-                    let statusText = data.online ? (activeAgo < 2 ? "active now" : `${activeAgo} min ago`) : "offline";
-                    usersList.push({ username: data.username, online: data.online, lastSeen: lastSeen, statusText });
-                }
-            });
-            if (activeContainer) {
-                if (usersList.length === 0) activeContainer.innerHTML = "<span style='color:gray'>No other active users</span>";
-                else {
-                    activeContainer.innerHTML = usersList.map(u => `
-                        <div class="user-chip ${currentChatPartner === u.username ? 'active' : ''}" data-user="${u.username}">
-                            <span class="online-dot ${u.online ? '' : 'away-dot'}"></span>
-                            ${u.username} <span style="font-size:10px;">(${u.statusText})</span>
-                        </div>
-                    `).join('');
-                    document.querySelectorAll('.user-chip').forEach(el => {
-                        el.addEventListener('click', () => {
-                            const partner = el.getAttribute('data-user');
-                            startChatWith(partner);
-                        });
-                    });
-                }
-            }
-        });
-
-        // initial load if any partner
-        if (currentChatPartner) {
-            startChatWith(currentChatPartner);
-        } else {
-            if (window.chatUnsub) window.chatUnsub();
-        }
-
-        window.presenceUnsub = presenceUnsub;
-        document.getElementById("sendMsgBtn").onclick = () => sendMessage();
-        document.getElementById("messageInput").addEventListener("keypress", (e) => { if (e.key === "Enter") sendMessage(); });
-        // Emoji picker simple: add emoji via prompt or basic
-        document.getElementById("emojiButton").onclick = () => {
-            const emoji = prompt("Choose emoji (copy paste or type):", "😊");
-            if (emoji) {
-                const input = document.getElementById("messageInput");
-                input.value += emoji;
-            }
-        };
-        // typing listener
-        if (currentChatPartner) setupTypingListener();
-    }
-
-    async function startChatWith(partnerUsername) {
-        if (!currentUser) return;
-        currentChatPartner = partnerUsername;
-        // unsubscribe old messages listener
+    // Setup realtime messages for current chat partner
+    function setupMessagesListener() {
         if (unsubscribeMessages) unsubscribeMessages();
-        // load messages between currentUser & partner
-        const chatId = generateChatId(currentUser.username, partnerUsername);
-        const messagesRef = db.collection("chats").doc(chatId).collection("messages");
+        if (!currentChatPartner || !currentUser) return;
+        
+        const roomId = getChatRoomId(currentUser.username, currentChatPartner);
+        const messagesRef = db.collection("chats").doc(roomId).collection("messages");
+        
         unsubscribeMessages = messagesRef.orderBy("timestamp", "asc").onSnapshot(snapshot => {
             const container = document.getElementById("chatMessagesArea");
             if (!container) return;
-            const msgs = [];
+            
+            const messages = [];
             snapshot.forEach(doc => {
                 const data = doc.data();
-                msgs.push({ ...data, id: doc.id });
+                messages.push({ id: doc.id, ...data });
             });
-            if (msgs.length === 0) {
-                container.innerHTML = `<div style="text-align:center; color:#6b7280;">Start chatting with ${partnerUsername}</div>`;
+            
+            if (messages.length === 0) {
+                container.innerHTML = `<div style="text-align:center; color:#6b7280; padding:20px;">✨ No messages yet. Say hi to ${currentChatPartner} ✨</div>`;
                 return;
             }
-            container.innerHTML = msgs.map(msg => `
-                <div class="message-bubble ${msg.sender === currentUser.username ? 'own' : ''}">
-                    <div class="message-meta"><span>${msg.sender}</span><span>${new Date(msg.timestamp?.toDate()).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span></div>
-                    <div>${escapeHtml(msg.text)}</div>
-                </div>
-            `).join('');
+            
+            container.innerHTML = messages.map(msg => {
+                const isOwn = msg.sender === currentUser.username;
+                const time = msg.timestamp ? new Date(msg.timestamp.toDate()).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : "now";
+                return `
+                    <div class="message-bubble ${isOwn ? 'own' : ''}">
+                        <div class="message-meta">
+                            <span>${escapeHtml(msg.sender)}</span>
+                            <span>${time}</span>
+                        </div>
+                        <div>${escapeHtml(msg.text)}</div>
+                    </div>
+                `;
+            }).join('');
             container.scrollTop = container.scrollHeight;
         });
-        setupTypingListener();
-        // update active chip highlight
-        renderMainDashboard(); // re-render to reflect active chip, but keep partner; to avoid blinking we refresh active panel only? but full render not ideal -> small update: recall but we will lose scroll? but preserve partner
-        // we quick patch: re-run active users panel reattach without full reinit
-        if (document.querySelectorAll('.user-chip')) {
-            document.querySelectorAll('.user-chip').forEach(el => {
-                if (el.getAttribute('data-user') === partnerUsername) el.classList.add('active');
-            });
+    }
+
+    // Typing indicators
+    async function setTyping(typing) {
+        if (!currentChatPartner || !currentUser) return;
+        const typingRef = db.collection("typing").doc(`${currentUser.username}_${currentChatPartner}`);
+        if (typing) {
+            await typingRef.set({ user: currentUser.username, typing: true, updated: firebase.firestore.FieldValue.serverTimestamp() });
+        } else {
+            await typingRef.set({ user: currentUser.username, typing: false, updated: firebase.firestore.FieldValue.serverTimestamp() });
         }
     }
-
-    async function sendMessage() {
-        const input = document.getElementById("messageInput");
-        const text = input.value.trim();
-        if (!text || !currentChatPartner) return alert("Select a user to chat");
-        const chatId = generateChatId(currentUser.username, currentChatPartner);
-        const messagesRef = db.collection("chats").doc(chatId).collection("messages");
-        const newMsg = {
-            sender: currentUser.username,
-            receiver: currentChatPartner,
-            text: text,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-            expireAt: firebase.firestore.FieldValue.serverTimestamp()
-        };
-        await messagesRef.add(newMsg);
-        input.value = "";
-        // auto delete after 3 minutes (180000 ms)
-        const snapshot = await messagesRef.where("timestamp", "==", newMsg.timestamp).limit(1).get();
-        snapshot.forEach(doc => {
-            setTimeout(async () => {
-                const docRef = messagesRef.doc(doc.id);
-                const docSnap = await docRef.get();
-                if (docSnap.exists) await docRef.delete();
-            }, 180000);
-        });
-        // typing false after send
-        await setTypingFalse();
-    }
-
+    
     function setupTypingListener() {
         if (typingListenerUnsub) typingListenerUnsub();
-        if (!currentChatPartner) return;
-        const typingRef = db.collection("typing").doc(`${currentUser.username}_${currentChatPartner}`);
+        if (!currentChatPartner || !currentUser) return;
+        const typingRef = db.collection("typing").doc(`${currentChatPartner}_${currentUser.username}`);
         typingListenerUnsub = typingRef.onSnapshot(doc => {
             const data = doc.data();
             const typingDiv = document.getElementById("typingStatus");
@@ -649,38 +489,179 @@
                 typingDiv.innerText = "";
             }
         });
-        // listen to input typing
-        const msgInput = document.getElementById("messageInput");
-        if (msgInput) {
-            msgInput.addEventListener("input", () => {
-                setTypingTrue();
-                if (typingTimeout) clearTimeout(typingTimeout);
-                typingTimeout = setTimeout(() => setTypingFalse(), 1500);
+    }
+
+    // Start private chat
+    async function startPrivateChat(partnerUsername) {
+        if (!currentUser) return;
+        if (partnerUsername === currentUser.username) {
+            alert("You cannot chat with yourself");
+            return;
+        }
+        currentChatPartner = partnerUsername;
+        setupMessagesListener();
+        setupTypingListener();
+        
+        // Update UI to show active chat chip
+        const allChips = document.querySelectorAll('.user-chip');
+        allChips.forEach(chip => {
+            const user = chip.getAttribute('data-user');
+            if (user === partnerUsername) chip.classList.add('active');
+            else chip.classList.remove('active');
+        });
+        
+        // Scroll to bottom
+        const msgContainer = document.getElementById("chatMessagesArea");
+        if (msgContainer) msgContainer.scrollTop = msgContainer.scrollHeight;
+    }
+
+    // Load active users list
+    function loadActiveUsers() {
+        if (presenceUnsub) presenceUnsub();
+        presenceUnsub = db.collection("presence").onSnapshot(snapshot => {
+            const container = document.getElementById("activeUsersContainer");
+            if (!container) return;
+            
+            const users = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                if (data.username !== currentUser?.username) {
+                    let lastSeen = data.lastSeen?.toDate() || new Date();
+                    let minsAgo = Math.floor((new Date() - lastSeen) / 60000);
+                    let status = data.online ? (minsAgo < 2 ? "active now" : `${minsAgo} min ago`) : "offline";
+                    users.push({ username: data.username, online: data.online, status, lastSeen });
+                }
             });
+            
+            // Always show admin as available (admin is developer)
+            const adminExists = users.some(u => u.username === "admin");
+            if (!adminExists && currentUser?.username !== "admin") {
+                users.push({ username: "admin", online: true, status: "active now", lastSeen: new Date() });
+            }
+            
+            if (users.length === 0) {
+                container.innerHTML = "<span style='color:gray'>No other users online</span>";
+                return;
+            }
+            
+            container.innerHTML = users.map(u => `
+                <div class="user-chip ${currentChatPartner === u.username ? 'active' : ''}" data-user="${u.username}">
+                    <span class="online-dot ${u.online ? '' : 'away-dot'}"></span>
+                    ${escapeHtml(u.username)} 
+                    <span style="font-size:10px;">(${u.status})</span>
+                </div>
+            `).join('');
+            
+            // Attach click handlers for each user chip
+            document.querySelectorAll('.user-chip').forEach(el => {
+                el.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const partner = el.getAttribute('data-user');
+                    if (partner) startPrivateChat(partner);
+                });
+            });
+        });
+    }
+
+    // Update user presence (heartbeat)
+    async function updatePresence() {
+        if (!currentUser) return;
+        await db.collection("presence").doc(currentUser.username).set({
+            username: currentUser.username,
+            lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+            online: true
+        }, { merge: true });
+    }
+    
+    // Cleanup on logout
+    async function logoutUser() {
+        if (currentUser) {
+            await db.collection("presence").doc(currentUser.username).set({ online: false, lastSeen: firebase.firestore.FieldValue.serverTimestamp() });
+        }
+        if (heartbeatInterval) clearInterval(heartbeatInterval);
+        if (unsubscribeMessages) unsubscribeMessages();
+        if (typingListenerUnsub) typingListenerUnsub();
+        if (presenceUnsub) presenceUnsub();
+        currentUser = null;
+        currentChatPartner = null;
+        localStorage.removeItem("hilom_user");
+        renderAuth();
+    }
+
+    // Delete own account
+    async function deleteOwnAccount() {
+        if (!currentUser) return;
+        if (confirm(`⚠️ Delete account "${currentUser.username}" permanently? All your data will be removed.`)) {
+            await db.collection("users").doc(currentUser.username).delete();
+            await db.collection("presence").doc(currentUser.username).delete();
+            // Delete all chat rooms where user is participant (optional cleanup)
+            await logoutUser();
+            renderAuth();
         }
     }
 
-    async function setTypingTrue() {
-        if (!currentChatPartner) return;
-        const typingRef = db.collection("typing").doc(`${currentUser.username}_${currentChatPartner}`);
-        await typingRef.set({ user: currentUser.username, typing: true, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+    // Admin functions
+    async function adminAddUser() {
+        const newUser = prompt("New username:");
+        if (!newUser) return;
+        const newPass = prompt("Password for " + newUser);
+        if (!newPass) return;
+        const existing = await db.collection("users").doc(newUser).get();
+        if (existing.exists) return alert("User already exists");
+        await db.collection("users").doc(newUser).set({
+            username: newUser,
+            password: newPass,
+            isAdmin: false,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        alert(`User ${newUser} added`);
+        renderAdminDashboard();
     }
-    async function setTypingFalse() {
-        if (!currentChatPartner) return;
-        const typingRef = db.collection("typing").doc(`${currentUser.username}_${currentChatPartner}`);
-        await typingRef.set({ user: currentUser.username, typing: false });
+    
+    async function adminResetPassword() {
+        const username = prompt("Username to reset password:");
+        if (!username) return;
+        const userDoc = await db.collection("users").doc(username).get();
+        if (!userDoc.exists) return alert("User not found");
+        const newPass = prompt("New password:");
+        if (newPass) {
+            await db.collection("users").doc(username).update({ password: newPass });
+            alert("Password updated");
+        }
+    }
+    
+    async function adminRemoveUser() {
+        const username = prompt("Username to remove:");
+        if (!username || username === currentUser?.username) return alert("Cannot remove yourself from here");
+        const userDoc = await db.collection("users").doc(username).get();
+        if (!userDoc.exists) return alert("User not found");
+        await db.collection("users").doc(username).delete();
+        await db.collection("presence").doc(username).delete();
+        alert(`User ${username} removed`);
+        renderAdminDashboard();
+    }
+    
+    async function adminDeleteAllChats() {
+        if (confirm("🔥 DELETE ALL CHAT MESSAGES IN EVERY ROOM? This action is permanent.")) {
+            const chatsSnapshot = await db.collection("chats").get();
+            for (const chatDoc of chatsSnapshot.docs) {
+                const messagesRef = db.collection("chats").doc(chatDoc.id).collection("messages");
+                const msgs = await messagesRef.get();
+                for (const msg of msgs.docs) await msg.ref.delete();
+                await chatDoc.ref.delete();
+            }
+            alert("All chat history cleared");
+            if (currentChatPartner) setupMessagesListener();
+        }
     }
 
-    function generateChatId(u1, u2) {
-        return [u1, u2].sort().join("_");
-    }
-
-    // Admin dashboard (add/remove users, reset passwords, delete chats, delete account)
+    // Render admin panel
     async function renderAdminDashboard() {
         if (!currentUser?.isAdmin) return renderMainDashboard();
         const usersSnapshot = await db.collection("users").get();
         const allUsers = [];
-        usersSnapshot.forEach(doc => allUsers.push({ ...doc.data(), id: doc.id }));
+        usersSnapshot.forEach(doc => allUsers.push(doc.data()));
+        
         appDiv.innerHTML = `
             <div class="chat-header" style="justify-content: space-between;">
                 <button id="backToChat" class="back-chat"><i class="fas fa-arrow-left"></i></button>
@@ -696,7 +677,7 @@
                     <button id="deleteAllChatsBtn" class="admin-btn danger-btn"><i class="fas fa-trash-alt"></i> Delete All Chats</button>
                 </div>
                 <div class="user-list" id="userListAdmin">
-                    ${allUsers.map(u => `<div class="user-item"><span>${u.username} ${u.isAdmin ? '(admin)' : ''}</span><span style="font-size:0.7rem;"></span></div>`).join('')}
+                    ${allUsers.map(u => `<div class="user-item"><span>${escapeHtml(u.username)} ${u.isAdmin ? '👑' : ''}</span></div>`).join('')}
                 </div>
                 <div style="margin-top: 30px;">
                     <button id="adminDeleteOwnAccount" class="admin-btn danger-btn"><i class="fas fa-user-slash"></i> Delete My Account</button>
@@ -704,83 +685,192 @@
             </div>
         `;
         document.getElementById("backToChat").onclick = () => renderMainDashboard();
-        document.getElementById("addUserBtn").onclick = async () => {
-            const newUser = prompt("New username:");
-            const newPass = prompt("New password:");
-            if (newUser && newPass) {
-                await db.collection("users").doc(newUser).set({ username: newUser, password: newPass, isAdmin: false });
-                alert("User added");
-                renderAdminDashboard();
-            }
-        };
-        document.getElementById("resetPassBtn").onclick = async () => {
-            const username = prompt("Enter username to reset password:");
-            if (username) {
-                const newPass = prompt("New password:");
-                if (newPass) {
-                    const userRef = db.collection("users").doc(username);
-                    const doc = await userRef.get();
-                    if (doc.exists) await userRef.update({ password: newPass });
-                    else alert("User not found");
-                    alert("Password updated");
-                }
-            }
-        };
-        document.getElementById("deleteUserBtn").onclick = async () => {
-            const username = prompt("Username to delete:");
-            if (username && username !== currentUser.username) {
-                await db.collection("users").doc(username).delete();
-                await db.collection("presence").doc(username).delete();
-                alert("User removed");
-                renderAdminDashboard();
-            } else alert("Cannot delete self from this panel (use delete my account)");
-        };
-        document.getElementById("deleteAllChatsBtn").onclick = async () => {
-            if (confirm("⚠️ DELETE ALL CHAT MESSAGES? IRREVERSIBLE")) {
-                const chatsRef = db.collection("chats");
-                const snap = await chatsRef.get();
-                for (const doc of snap.docs) {
-                    const sub = await chatsRef.doc(doc.id).collection("messages").get();
-                    for (const msg of sub.docs) await msg.ref.delete();
-                    await doc.ref.delete();
-                }
-                alert("All chat data cleared.");
-            }
-        };
+        document.getElementById("addUserBtn").onclick = adminAddUser;
+        document.getElementById("resetPassBtn").onclick = adminResetPassword;
+        document.getElementById("deleteUserBtn").onclick = adminRemoveUser;
+        document.getElementById("deleteAllChatsBtn").onclick = adminDeleteAllChats;
         document.getElementById("adminDeleteOwnAccount").onclick = async () => {
-            if (confirm("Delete your entire account? you'll be logged out.")) {
-                await db.collection("users").doc(currentUser.username).delete();
-                await db.collection("presence").doc(currentUser.username).delete();
-                currentUser = null;
-                localStorage.removeItem("hilom_user");
-                renderAuth();
-            }
+            await deleteOwnAccount();
         };
     }
 
-    function escapeHtml(str) {
-        return str.replace(/[&<>]/g, function(m) { if (m === '&') return '&amp;'; if (m === '<') return '&lt;'; if (m === '>') return '&gt;'; return m; });
+    // Main chat UI
+    function renderMainDashboard() {
+        if (!currentUser) return renderAuth();
+        
+        appDiv.innerHTML = `
+            <div class="chat-header">
+                <h2>Hilom</h2>
+                <div>
+                    <span style="font-size:0.8rem;">${escapeHtml(currentUser.username)}</span>
+                    <button id="logoutBtn" style="background:none; border:none; color:gray; margin-left:12px; font-size:1.2rem;"><i class="fas fa-sign-out-alt"></i></button>
+                    ${currentUser.isAdmin ? '<button id="adminPanelBtn" style="background:none; border:none; color:#facc15; margin-left:8px; font-size:1.2rem;"><i class="fas fa-user-shield"></i></button>' : ''}
+                </div>
+            </div>
+            <div id="activeUsersContainer" class="active-users-panel">Loading users...</div>
+            <div id="chatMessagesArea" class="chat-messages">
+                <div style="text-align:center; color:#6b7280; padding:20px;">👆 Tap a user to start private chat</div>
+            </div>
+            <div id="typingStatus" class="typing-indicator"></div>
+            <div class="chat-input-area">
+                <button id="emojiButton" class="emoji-btn"><i class="far fa-smile-wink"></i></button>
+                <input type="text" id="messageInput" placeholder="Message..." autocomplete="off">
+                <button id="sendMsgBtn"><i class="fas fa-paper-plane"></i></button>
+            </div>
+            <div class="footer-note">Messages disappear after 3 mins · Private 1:1</div>
+        `;
+        
+        // Load active users and setup listeners
+        loadActiveUsers();
+        
+        // Restore previous chat if any
+        if (currentChatPartner) {
+            setupMessagesListener();
+            setupTypingListener();
+        }
+        
+        // Send message logic
+        const sendBtn = document.getElementById("sendMsgBtn");
+        const msgInput = document.getElementById("messageInput");
+        
+        const sendCurrentMessage = async () => {
+            if (!currentChatPartner) {
+                alert("Please select a user to chat with first (tap on any user above)");
+                return;
+            }
+            const text = msgInput.value;
+            if (!text.trim()) return;
+            const success = await sendPrivateMessage(currentChatPartner, text);
+            if (success) {
+                msgInput.value = "";
+                setTyping(false);
+                if (typingTimeout) clearTimeout(typingTimeout);
+            }
+        };
+        
+        sendBtn.onclick = sendCurrentMessage;
+        msgInput.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") sendCurrentMessage();
+        });
+        
+        // Typing events
+        msgInput.addEventListener("input", () => {
+            if (currentChatPartner) {
+                setTyping(true);
+                if (typingTimeout) clearTimeout(typingTimeout);
+                typingTimeout = setTimeout(() => setTyping(false), 1500);
+            }
+        });
+        
+        // Emoji picker (simple)
+        document.getElementById("emojiButton").onclick = () => {
+            const emoji = prompt("Choose emoji (copy paste or type):", "😊❤️🔥👍");
+            if (emoji && msgInput) msgInput.value += emoji;
+        };
+        
+        document.getElementById("logoutBtn").onclick = () => logoutUser();
+        if (currentUser.isAdmin) {
+            document.getElementById("adminPanelBtn").onclick = () => renderAdminDashboard();
+        }
+        
+        // Heartbeat every 15 sec
+        if (heartbeatInterval) clearInterval(heartbeatInterval);
+        heartbeatInterval = setInterval(() => updatePresence(), 15000);
+        updatePresence();
     }
 
-    // Auto restore session after refresh (persist login)
+    // Authentication UI
+    async function handleLogin() {
+        const username = document.getElementById("loginUsername").value.trim();
+        const password = document.getElementById("loginPassword").value.trim();
+        if (!username || !password) return alert("Enter username & password");
+        const userDoc = await db.collection("users").doc(username).get();
+        if (!userDoc.exists) return alert("User not found");
+        const data = userDoc.data();
+        if (data.password !== password) return alert("Wrong password");
+        
+        currentUser = { username: data.username, isAdmin: data.isAdmin || false };
+        localStorage.setItem("hilom_user", JSON.stringify({ username: currentUser.username, isAdmin: currentUser.isAdmin }));
+        await updatePresence();
+        renderMainDashboard();
+    }
+    
+    async function handleSignup() {
+        const username = document.getElementById("signupUsername").value.trim();
+        const password = document.getElementById("signupPassword").value.trim();
+        if (!username || !password) return alert("Fill all fields");
+        const existing = await db.collection("users").doc(username).get();
+        if (existing.exists) return alert("Username already taken");
+        await db.collection("users").doc(username).set({
+            username: username,
+            password: password,
+            isAdmin: false,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        alert("Account created! Please login.");
+        renderAuth();
+    }
+    
+    function renderAuth() {
+        appDiv.innerHTML = `
+            <div class="auth-container">
+                <div class="auth-header" style="background:transparent; border:none; justify-content:center;">
+                    <h2>Hilom</h2>
+                </div>
+                <div class="auth-card">
+                    <input type="text" id="loginUsername" placeholder="Username" autocomplete="off">
+                    <input type="password" id="loginPassword" placeholder="Password" autocomplete="off">
+                    <button id="loginBtn">Log in</button>
+                    <div class="switch-auth">No account? <span id="showSignup">Create account</span></div>
+                </div>
+                <div class="footer-note">private · ephemeral messages</div>
+            </div>
+        `;
+        document.getElementById("loginBtn").onclick = handleLogin;
+        document.getElementById("showSignup").onclick = () => {
+            appDiv.innerHTML = `
+                <div class="auth-container">
+                    <div class="auth-header" style="background:transparent;">
+                        <button class="back-chat" id="backToLogin"><i class="fas fa-arrow-left"></i></button>
+                        <h2>Sign up</h2>
+                    </div>
+                    <div class="auth-card">
+                        <input type="text" id="signupUsername" placeholder="Username">
+                        <input type="password" id="signupPassword" placeholder="Password">
+                        <button id="signupBtn">Create Account</button>
+                    </div>
+                </div>
+            `;
+            document.getElementById("signupBtn").onclick = handleSignup;
+            document.getElementById("backToLogin").onclick = () => renderAuth();
+        };
+        
+        const loginUser = document.getElementById("loginUsername");
+        const loginPass = document.getElementById("loginPassword");
+        const doLogin = () => handleLogin();
+        loginUser.addEventListener("keypress", (e) => e.key === "Enter" && doLogin());
+        loginPass.addEventListener("keypress", (e) => e.key === "Enter" && doLogin());
+    }
+    
+    // Auto-restore session on refresh
     (function restoreSession() {
         const stored = localStorage.getItem("hilom_user");
         if (stored) {
             try {
                 const userData = JSON.parse(stored);
-                currentUser = userData;
-                // verify existence in firestore
                 db.collection("users").doc(userData.username).get().then(doc => {
                     if (doc.exists) {
-                        currentUser.isAdmin = doc.data().isAdmin || false;
-                        renderMainDashboard();
+                        currentUser = { username: doc.data().username, isAdmin: doc.data().isAdmin || false };
+                        updatePresence().then(() => renderMainDashboard());
                     } else {
                         localStorage.removeItem("hilom_user");
                         renderAuth();
                     }
                 }).catch(() => renderAuth());
             } catch(e) { renderAuth(); }
-        } else { renderAuth(); }
+        } else {
+            renderAuth();
+        }
     })();
 </script>
 </body>
