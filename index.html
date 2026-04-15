@@ -2,47 +2,62 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>OmniChat - Real-time Private Messaging</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>HilomChat · Private Whisper</title>
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif;
         }
 
         body {
-            background: linear-gradient(135deg, #1e1e2f, #2a2a3b);
+            background: #000000;
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 20px;
+            padding: 12px;
         }
 
-        /* Auth Panel (Login/Register) */
+        /* smooth mobile scaling */
+        @media (max-width: 640px) {
+            body {
+                padding: 0;
+            }
+        }
+
+        /* ===== AUTH CARD ===== */
         .auth-container {
-            background: rgba(30, 30, 46, 0.95);
-            backdrop-filter: blur(8px);
-            border-radius: 32px;
-            padding: 2rem;
+            background: #0c0c0e;
+            backdrop-filter: blur(0px);
+            border-radius: 40px;
+            padding: 2rem 1.6rem;
             width: 100%;
-            max-width: 420px;
-            box-shadow: 0 25px 45px rgba(0,0,0,0.3);
-            border: 1px solid rgba(255,255,255,0.1);
-            transition: all 0.3s ease;
+            max-width: 400px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05);
+            transition: all 0.2s ease;
+            border: 1px solid #222;
         }
 
         .auth-container h2 {
-            color: #fff;
+            color: white;
             text-align: center;
-            margin-bottom: 1.5rem;
-            font-weight: 600;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+            font-size: 2rem;
+            letter-spacing: -0.5px;
+        }
+
+        .auth-sub {
+            text-align: center;
+            color: #8a8a9e;
+            font-size: 0.8rem;
+            margin-bottom: 2rem;
         }
 
         .input-group {
@@ -51,115 +66,119 @@
 
         .input-group input {
             width: 100%;
-            padding: 14px 18px;
-            background: rgba(20,20,30,0.8);
-            border: 1px solid #3a3a4a;
-            border-radius: 28px;
-            color: white;
+            padding: 16px 20px;
+            background: #121214;
+            border: 1px solid #2c2c30;
+            border-radius: 34px;
+            color: #f0f0f0;
             font-size: 1rem;
             outline: none;
             transition: 0.2s;
         }
 
         .input-group input:focus {
-            border-color: #7c3aed;
-            box-shadow: 0 0 0 2px rgba(124,58,237,0.3);
+            border-color: #a855f7;
+            box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.2);
         }
 
         button {
             width: 100%;
-            padding: 12px;
-            background: #7c3aed;
+            padding: 14px;
+            background: #a855f7;
             border: none;
-            border-radius: 40px;
+            border-radius: 44px;
             color: white;
-            font-weight: bold;
+            font-weight: 700;
             font-size: 1rem;
             cursor: pointer;
             transition: 0.2s;
             margin-top: 8px;
         }
 
-        button:hover {
-            background: #6d28d9;
-            transform: scale(0.98);
+        button:active {
+            transform: scale(0.97);
         }
 
         .toggle-link {
             text-align: center;
-            margin-top: 1rem;
-            color: #a1a1aa;
+            margin-top: 1.2rem;
+            color: #8a8a9e;
             font-size: 0.85rem;
         }
 
         .toggle-link span {
             color: #c084fc;
             cursor: pointer;
-            text-decoration: underline;
+            font-weight: 500;
         }
 
         .error-msg {
-            background: #ff4d4d20;
-            color: #ffb3b3;
-            padding: 8px;
-            border-radius: 20px;
+            background: rgba(255, 70, 70, 0.15);
+            color: #ffaeae;
+            padding: 10px;
+            border-radius: 40px;
             text-align: center;
             font-size: 0.8rem;
-            margin-top: 10px;
+            margin-top: 12px;
+            border: 1px solid #ff4d4d30;
         }
 
-        /* Main Dashboard (Chat UI) */
+        /* ===== DASHBOARD (MAIN) ===== */
         .dashboard {
             display: none;
             width: 100%;
-            max-width: 1400px;
-            height: 90vh;
-            background: #1e1e2a;
-            border-radius: 32px;
+            max-width: 1500px;
+            height: 95vh;
+            background: #000000;
+            border-radius: 36px;
             overflow: hidden;
-            box-shadow: 0 20px 35px rgba(0,0,0,0.4);
-            border: 1px solid #2d2d3a;
+            box-shadow: 0 0 0 1px #222, 0 20px 40px rgba(0,0,0,0.6);
             flex-direction: row;
         }
 
-        /* Sidebar: users list + admin panel */
+        /* SIDEBAR - mobile friendly, scroll */
         .sidebar {
-            width: 280px;
-            background: #161622;
-            border-right: 1px solid #2d2d3a;
+            width: 290px;
+            background: #08080a;
+            border-right: 1px solid #1f1f24;
             display: flex;
             flex-direction: column;
             overflow-y: auto;
+            flex-shrink: 0;
         }
 
         .user-info {
-            padding: 20px;
-            border-bottom: 1px solid #2d2d3a;
-            background: #13131f;
+            padding: 20px 18px;
+            border-bottom: 1px solid #1e1e24;
+            background: #030303;
         }
 
         .user-info h3 {
             color: white;
-            font-size: 1.2rem;
+            font-size: 1.3rem;
+            font-weight: 600;
+            word-break: break-word;
         }
 
         .user-info p {
-            color: #a0a0b0;
-            font-size: 0.75rem;
+            color: #9ca3af;
+            font-size: 0.7rem;
+            margin-top: 4px;
         }
 
         .logout-btn {
-            background: #3b3b55;
-            margin-top: 10px;
-            padding: 6px;
+            background: #2c2c34;
+            margin-top: 12px;
+            padding: 8px;
             font-size: 0.8rem;
         }
 
         .section-title {
-            color: #aaa;
+            color: #a1a1aa;
             font-size: 0.7rem;
-            letter-spacing: 1px;
-            padding: 15px 20px 5px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            padding: 18px 20px 6px 20px;
         }
 
         .online-users-list {
@@ -168,181 +187,237 @@
         }
 
         .online-users-list li {
-            padding: 12px 20px;
+            padding: 14px 20px;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             cursor: pointer;
             transition: 0.1s;
-            border-bottom: 1px solid #252535;
-            color: #ddd;
+            border-bottom: 1px solid #16161c;
+            color: #e4e4e7;
         }
 
-        .online-users-list li:hover {
-            background: #2a2a3c;
+        .online-users-list li:active {
+            background: #1f1f2a;
         }
 
         .active-chat-user {
-            background: #3a2c54;
-            border-left: 4px solid #c084fc;
+            background: #2a1e3c;
+            border-left: 3px solid #c084fc;
         }
 
         .status-dot {
             width: 10px;
             height: 10px;
-            background: #22c55e;
+            background: #10b981;
             border-radius: 50%;
-            display: inline-block;
+            box-shadow: 0 0 2px #10b981;
         }
 
         .username-badge {
             font-weight: 500;
             flex: 1;
+            font-size: 0.9rem;
         }
 
-        /* Admin section */
+        /* ADMIN PANEL - full control */
         .admin-section {
             margin-top: auto;
-            border-top: 1px solid #2d2d3a;
-            padding: 12px;
-            background: #12121c;
+            border-top: 1px solid #1f1f28;
+            padding: 16px;
+            background: #050507;
+        }
+
+        .admin-section h4 {
+            color: #c084fc;
+            font-size: 0.7rem;
+            margin-bottom: 12px;
+            letter-spacing: 0.5px;
         }
 
         .admin-section button {
-            background: #b91c1c;
+            background: #1e1e2a;
             margin: 6px 0;
             font-size: 0.75rem;
-            padding: 8px;
+            padding: 10px;
         }
 
-        .admin-section button:not(.danger-btn) {
-            background: #2d3748;
+        .admin-section .danger-btn {
+            background: #b91c1c;
         }
 
         .admin-section input {
             width: 100%;
-            padding: 6px;
-            margin: 5px 0;
-            background: #0f0f17;
-            border: 1px solid #334;
+            padding: 10px 14px;
+            margin: 6px 0;
+            background: #121214;
+            border: 1px solid #2a2a30;
             color: white;
-            border-radius: 12px;
+            border-radius: 28px;
+            font-size: 0.8rem;
         }
 
-        /* Chat Area */
+        .user-list-admin {
+            max-height: 140px;
+            overflow-y: auto;
+            background: #0a0a0c;
+            border-radius: 20px;
+            padding: 6px;
+            margin: 8px 0;
+            font-size: 0.7rem;
+        }
+
+        .user-list-admin span {
+            display: inline-block;
+            background: #1f1f28;
+            padding: 4px 10px;
+            border-radius: 20px;
+            margin: 4px 6px;
+            color: #ddd;
+        }
+
+        /* CHAT AREA */
         .chat-area {
             flex: 1;
             display: flex;
             flex-direction: column;
-            background: #1a1a26;
+            background: #000000;
         }
 
         .chat-header {
             padding: 18px 24px;
-            background: #13131f;
-            border-bottom: 1px solid #2d2d3a;
-            color: white;
+            background: #08080c;
+            border-bottom: 1px solid #1f1f26;
+            color: #f0f0f0;
             font-weight: 600;
+            font-size: 1rem;
         }
 
         .messages-container {
             flex: 1;
             overflow-y: auto;
-            padding: 20px;
+            padding: 20px 16px;
             display: flex;
             flex-direction: column;
             gap: 12px;
         }
 
         .message-bubble {
-            max-width: 70%;
-            padding: 10px 16px;
-            border-radius: 24px;
+            max-width: 80%;
+            padding: 12px 18px;
+            border-radius: 28px;
             font-size: 0.9rem;
             word-wrap: break-word;
-            position: relative;
-            animation: fadeIn 0.2s ease;
+            animation: fadeSlide 0.2s ease;
         }
 
         .message-mine {
             align-self: flex-end;
-            background: #7c3aed;
+            background: #a855f7;
             color: white;
             border-bottom-right-radius: 6px;
         }
 
         .message-theirs {
             align-self: flex-start;
-            background: #2d2d3a;
-            color: #f0f0f0;
+            background: #1c1c22;
+            color: #efeff1;
             border-bottom-left-radius: 6px;
         }
 
         .message-info {
-            font-size: 0.7rem;
-            opacity: 0.7;
-            margin-top: 4px;
-            display: flex;
-            gap: 8px;
-        }
-
-        .timestamp {
             font-size: 0.65rem;
+            opacity: 0.7;
+            margin-top: 6px;
+            display: flex;
+            gap: 12px;
         }
 
         .delete-indicator {
             font-size: 0.6rem;
-            color: #ff9f9f;
+            color: #fbbf24;
         }
 
         .input-area {
             display: flex;
             gap: 12px;
-            padding: 18px;
-            background: #13131f;
-            border-top: 1px solid #2d2d3a;
+            padding: 16px 18px;
+            background: #08080c;
+            border-top: 1px solid #1e1e24;
         }
 
         .input-area input {
             flex: 1;
-            padding: 12px 18px;
+            padding: 14px 20px;
             border-radius: 40px;
-            border: none;
-            background: #252535;
+            border: 1px solid #2c2c34;
+            background: #121214;
             color: white;
             outline: none;
+            font-size: 0.95rem;
         }
 
         .input-area button {
             width: auto;
             padding: 0 24px;
             margin: 0;
+            background: #a855f7;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px);}
+        @keyframes fadeSlide {
+            from { opacity: 0; transform: translateY(6px);}
             to { opacity: 1; transform: translateY(0);}
         }
 
+        /* mobile responsive: sidebar shrinks */
         @media (max-width: 700px) {
-            .sidebar { width: 240px; }
-            .message-bubble { max-width: 85%; }
+            .sidebar {
+                width: 240px;
+            }
+            .message-bubble {
+                max-width: 88%;
+            }
+            .user-info h3 {
+                font-size: 1rem;
+            }
+        }
+
+        @media (max-width: 550px) {
+            .dashboard {
+                border-radius: 0;
+                height: 100vh;
+            }
+            .sidebar {
+                width: 210px;
+            }
+        }
+
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0a0a0c;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #3a3a44;
+            border-radius: 10px;
         }
     </style>
 </head>
 <body>
 
 <div id="authPanel" class="auth-container">
-    <h2>✨ OmniChat ✨</h2>
+    <h2>🌙 hilomchat</h2>
+    <div class="auth-sub">whisper · vanish · private</div>
     <div class="input-group">
-        <input type="text" id="authUsername" placeholder="Username" autocomplete="off">
+        <input type="text" id="authUsername" placeholder="username" autocomplete="off">
     </div>
     <div class="input-group">
-        <input type="password" id="authPassword" placeholder="Password">
+        <input type="password" id="authPassword" placeholder="password (min. 6 chars)">
     </div>
-    <button id="loginBtn">Login / Register</button>
+    <button id="loginBtn">→ enter chat</button>
     <div class="toggle-link">
-        New user? <span id="showRegister">Create account</span>
+        new soul? <span id="showRegister">create account</span>
     </div>
     <div id="authError" class="error-msg" style="display: none;"></div>
 </div>
@@ -350,37 +425,42 @@
 <div id="dashboard" class="dashboard">
     <div class="sidebar">
         <div class="user-info">
-            <h3 id="currentUserDisplay">User</h3>
-            <p id="userRoleDisplay">Online</p>
-            <button id="logoutSideBtn" class="logout-btn">🚪 Sign Out</button>
+            <h3 id="currentUserDisplay">...</h3>
+            <p id="userRoleDisplay">⚡ online</p>
+            <button id="logoutSideBtn" class="logout-btn">✖ disconnect</button>
         </div>
-        <div class="section-title">👥 ONLINE USERS</div>
+        <div class="section-title">🟢 online souls</div>
         <ul id="onlineUsersList" class="online-users-list">
-            <li style="justify-content:center;">Loading users...</li>
+            <li style="justify-content:center;">loading...</li>
         </ul>
+
+        <!-- admin dashboard: full user list + extra controls -->
         <div id="adminPanel" class="admin-section" style="display: none;">
-            <div class="section-title">🛡️ ADMIN CONTROL</div>
-            <input type="text" id="adminDeleteUserInput" placeholder="Username to delete">
-            <button id="adminDeleteUserBtn">🗑️ Delete User</button>
-            <button id="adminViewPasswordsBtn" style="background:#4c1d95;">🔓 View Passwords</button>
-            <div id="passwordViewer" style="font-size:12px; color:#cbd5e1; margin-top:8px;"></div>
-            <button id="adminDeleteAllChatsBtn" class="danger-btn" style="background:#b91c1c;">⚠️ Delete ALL Chats</button>
+            <h4>🛡️ omniview · admin</h4>
+            <div><strong style="color:#ccc; font-size:0.7rem;">📋 existing users</strong></div>
+            <div id="adminUserListContainer" class="user-list-admin">loading users...</div>
+            <input type="text" id="adminDeleteUserInput" placeholder="username to delete">
+            <button id="adminDeleteUserBtn">🗑️ delete user & chats</button>
+            <button id="adminViewPasswordsBtn" style="background:#3b2e5e;">🔓 reveal all passwords</button>
+            <div id="passwordViewer" style="font-size:11px; color:#d4d4d8; margin-top:8px; background:#0f0f12; border-radius:20px; padding:8px;"></div>
+            <button id="adminDeleteAllChatsBtn" class="danger-btn">⚠️ wipe ALL messages</button>
         </div>
     </div>
+
     <div class="chat-area">
-        <div class="chat-header" id="chatHeader">💬 Select a user to start chatting</div>
+        <div class="chat-header" id="chatHeader">💬 tap a user to start private chat</div>
         <div id="messagesContainer" class="messages-container">
-            <div style="text-align:center; color:#aaa;">Click on a user from the sidebar</div>
+            <div style="text-align:center; color:#52525b;">select someone from sidebar</div>
         </div>
         <div class="input-area">
-            <input type="text" id="messageInput" placeholder="Type a message..." disabled>
-            <button id="sendMsgBtn" disabled>Send</button>
+            <input type="text" id="messageInput" placeholder="message..." disabled>
+            <button id="sendMsgBtn" disabled>send</button>
         </div>
     </div>
 </div>
 
 <script>
-    // Firebase config (provided)
+    // Firebase init with given config
     const firebaseConfig = {
         apiKey: "AIzaSyCW71xwMV6DS6ggu-Q-TXX8OeKW-aWUKuY",
         authDomain: "chatapp-1dabd.firebaseapp.com",
@@ -390,356 +470,311 @@
         appId: "1:203806709864:web:f739450e99bcb5964043dd",
         measurementId: "G-YE19PXXBEZ"
     };
-
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
-    
-    // Collections: users (custom auth), privateMessages, onlineStatus
+
     let currentUser = null;
     let currentChatPartner = null;
     let unsubscribeMessages = null;
-    let onlineListener = null;
+    let onlineUnsub = null;
+    let adminUsersUnsub = null;
 
-    // Helper functions
+    // helpers
     function showError(msg, isAuth = true) {
         const errDiv = document.getElementById('authError');
-        if(isAuth) {
+        if (isAuth && errDiv) {
             errDiv.style.display = 'block';
             errDiv.innerText = msg;
-            setTimeout(() => errDiv.style.display = 'none', 3000);
+            setTimeout(() => errDiv.style.display = 'none', 2800);
         } else {
             alert(msg);
         }
     }
 
-    // Register / Login Logic (using Firestore as simple auth store)
-    async function authenticate(username, password, isRegisterMode = false) {
-        const usersRef = db.collection('users');
-        const userDoc = await usersRef.doc(username).get();
-        
-        if(isRegisterMode) {
-            if(userDoc.exists) {
-                showError('Username already exists! Try another or login.');
-                return false;
-            }
-            if(password.length < 6) {
-                showError('Password must be at least 6 characters.');
-                return false;
-            }
-            // create new user
-            await usersRef.doc(username).set({
-                username: username,
-                password: password,
+    async function authenticate(username, password, isRegister = false) {
+        const userRef = db.collection('users').doc(username);
+        const doc = await userRef.get();
+        if (isRegister) {
+            if (doc.exists) { showError('username exists · try login'); return false; }
+            if (password.length < 6) { showError('password must be ≥6 characters'); return false; }
+            await userRef.set({
+                username, password,
                 role: username === 'admin' ? 'admin' : 'user',
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 online: true,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 lastSeen: firebase.firestore.FieldValue.serverTimestamp()
             });
             currentUser = { username, role: username === 'admin' ? 'admin' : 'user' };
             return true;
         } else {
-            // LOGIN
-            if(!userDoc.exists) {
-                showError('User not found. Please register first.');
-                return false;
-            }
-            const userData = userDoc.data();
-            if(userData.password !== password) {
-                showError('Invalid password.');
-                return false;
-            }
-            currentUser = { username, role: userData.role || 'user' };
+            if (!doc.exists) { showError('user not found · register first'); return false; }
+            const data = doc.data();
+            if (data.password !== password) { showError('wrong password'); return false; }
+            currentUser = { username, role: data.role || 'user' };
+            await userRef.update({ online: true, lastSeen: firebase.firestore.FieldValue.serverTimestamp() });
             return true;
         }
     }
 
-    // Update online status
-    async function setOnlineStatus(online) {
-        if(!currentUser) return;
-        await db.collection('users').doc(currentUser.username).update({
-            online: online,
-            lastSeen: firebase.firestore.FieldValue.serverTimestamp()
-        });
+    async function setOnline(status) {
+        if (!currentUser) return;
+        await db.collection('users').doc(currentUser.username).update({ online: status, lastSeen: firebase.firestore.FieldValue.serverTimestamp() });
     }
 
-    // Listen to online users
-    function listenOnlineUsers() {
-        if(onlineListener) onlineListener();
-        onlineListener = db.collection('users').where('online', '==', true).onSnapshot(snapshot => {
-            const userList = document.getElementById('onlineUsersList');
-            if(!userList) return;
-            const users = [];
+    // realtime online users + admin user list refresh
+    function listenOnlineAndUsers() {
+        if (onlineUnsub) onlineUnsub();
+        onlineUnsub = db.collection('users').where('online', '==', true).onSnapshot(snapshot => {
+            const userListEl = document.getElementById('onlineUsersList');
+            if (!userListEl) return;
+            const usersOnline = [];
             snapshot.forEach(doc => {
                 const data = doc.data();
-                if(data.username !== currentUser?.username) {
-                    users.push({ username: data.username, role: data.role });
-                }
+                if (data.username !== currentUser?.username) usersOnline.push({ username: data.username, role: data.role });
             });
-            if(users.length === 0) {
-                userList.innerHTML = '<li style="justify-content:center; color:#888;">No other users online</li>';
+            if (usersOnline.length === 0) {
+                userListEl.innerHTML = '<li style="justify-content:center; color:#52525b;">no one else online</li>';
                 return;
             }
-            userList.innerHTML = '';
-            users.forEach(user => {
+            userListEl.innerHTML = '';
+            usersOnline.forEach(user => {
                 const li = document.createElement('li');
                 li.innerHTML = `<span class="status-dot"></span><span class="username-badge">${escapeHtml(user.username)}</span>`;
                 li.addEventListener('click', () => {
-                    if(currentChatPartner === user.username) return;
-                    // Switch chat partner
-                    if(unsubscribeMessages) unsubscribeMessages();
+                    if (currentChatPartner === user.username) return;
+                    if (unsubscribeMessages) unsubscribeMessages();
                     currentChatPartner = user.username;
-                    document.getElementById('chatHeader').innerHTML = `💬 Chat with ${escapeHtml(currentChatPartner)}`;
+                    document.getElementById('chatHeader').innerHTML = `💬 chatting with ${escapeHtml(currentChatPartner)} · messages vanish in 2min`;
                     document.getElementById('messageInput').disabled = false;
                     document.getElementById('sendMsgBtn').disabled = false;
-                    loadMessages(currentUser.username, currentChatPartner);
+                    loadPrivateMessages(currentUser.username, currentChatPartner);
                     highlightActiveUser(currentChatPartner);
                 });
-                if(currentChatPartner === user.username) li.classList.add('active-chat-user');
-                userList.appendChild(li);
+                if (currentChatPartner === user.username) li.classList.add('active-chat-user');
+                userListEl.appendChild(li);
             });
-        }, err => console.error(err));
+        });
+
+        // if admin, listen to all users for "existing users" display
+        if (currentUser?.role === 'admin') {
+            if (adminUsersUnsub) adminUsersUnsub();
+            adminUsersUnsub = db.collection('users').onSnapshot(snap => {
+                const container = document.getElementById('adminUserListContainer');
+                if (!container) return;
+                let allUsersHtml = '';
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    allUsersHtml += `<span>${escapeHtml(data.username)} ${data.online ? '🟢' : '⚫'}</span>`;
+                });
+                container.innerHTML = allUsersHtml || '<span>no users</span>';
+            });
+        }
     }
 
     function highlightActiveUser(partner) {
         const items = document.querySelectorAll('#onlineUsersList li');
         items.forEach(li => {
             const span = li.querySelector('.username-badge');
-            if(span && span.innerText === partner) li.classList.add('active-chat-user');
+            if (span && span.innerText === partner) li.classList.add('active-chat-user');
             else li.classList.remove('active-chat-user');
         });
     }
 
-    // Load private messages between two users
-    function loadMessages(userA, userB) {
+    function generateChatId(u1, u2) {
+        return [u1, u2].sort().join('_');
+    }
+
+    async function deleteExpiredMessagesForChat(chatId) {
+        const msgCol = db.collection('privateMessages').doc(chatId).collection('messages');
+        const now = firebase.firestore.Timestamp.now();
+        const expired = await msgCol.where('expiresAt', '<=', now).get();
+        expired.forEach(d => d.ref.delete());
+    }
+
+    function loadPrivateMessages(userA, userB) {
         const chatId = generateChatId(userA, userB);
-        const messagesRef = db.collection('privateMessages').doc(chatId).collection('messages');
-        unsubscribeMessages = messagesRef.orderBy('timestamp', 'asc').onSnapshot(snapshot => {
+        const msgRef = db.collection('privateMessages').doc(chatId).collection('messages');
+        if (unsubscribeMessages) unsubscribeMessages();
+        unsubscribeMessages = msgRef.orderBy('timestamp', 'asc').onSnapshot(async snapshot => {
             const container = document.getElementById('messagesContainer');
-            if(!container) return;
+            if (!container) return;
             container.innerHTML = '';
-            const changes = snapshot.docChanges();
+            // also trigger cleanup on load
+            await deleteExpiredMessagesForChat(chatId);
             snapshot.forEach(doc => {
                 const msg = doc.data();
+                if (msg.expiresAt && msg.expiresAt.toMillis() < Date.now()) return;
                 const isMine = msg.sender === currentUser.username;
-                const messageDiv = document.createElement('div');
-                messageDiv.classList.add('message-bubble', isMine ? 'message-mine' : 'message-theirs');
-                let timeStr = msg.timestamp ? new Date(msg.timestamp.toDate()).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : 'now';
-                let deleteTimerNote = '';
-                if(msg.expiresAt && msg.expiresAt.toMillis() < Date.now()) return; // skip expired but db already cleaned
-                messageDiv.innerHTML = `
+                const bubble = document.createElement('div');
+                bubble.classList.add('message-bubble', isMine ? 'message-mine' : 'message-theirs');
+                let timeStr = msg.timestamp ? new Date(msg.timestamp.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'now';
+                bubble.innerHTML = `
                     <div>${escapeHtml(msg.text)}</div>
                     <div class="message-info">
                         <span>${escapeHtml(msg.sender)}</span>
-                        <span class="timestamp">${timeStr}</span>
-                        <span class="delete-indicator">⏱️ auto-delete 2min</span>
+                        <span>${timeStr}</span>
+                        <span class="delete-indicator">🗑️ 2min auto-delete</span>
                     </div>
                 `;
-                container.appendChild(messageDiv);
+                container.appendChild(bubble);
             });
             container.scrollTop = container.scrollHeight;
         });
     }
 
-    // Send message with auto-delete after 2 minutes
     async function sendMessage(text) {
-        if(!text.trim() || !currentChatPartner || !currentUser) return;
+        if (!text.trim() || !currentChatPartner || !currentUser) return;
         const chatId = generateChatId(currentUser.username, currentChatPartner);
-        const messagesRef = db.collection('privateMessages').doc(chatId).collection('messages');
-        const now = firebase.firestore.Timestamp.now();
+        const msgCol = db.collection('privateMessages').doc(chatId).collection('messages');
         const expiresAt = firebase.firestore.Timestamp.fromDate(new Date(Date.now() + 2 * 60 * 1000));
-        await messagesRef.add({
+        await msgCol.add({
             sender: currentUser.username,
             receiver: currentChatPartner,
             text: text.trim(),
-            timestamp: now,
+            timestamp: firebase.firestore.Timestamp.now(),
             expiresAt: expiresAt
         });
-        // schedule delete via Firestore TTL? We'll do client cleanup listener but also we need backend: create a cloud function not possible.
-        // But we can also manually set a timeout to delete but that's not reliable across clients. Instead we rely on the fact that we will filter expired messages client side, and admin can delete.
-        // To enforce deletion, we will add a scheduled cleanup on the client side when loading but not fullproof. But for simplicity we add a listener to auto remove expired from firestore? We can't without function.
-        // Workaround: show messages only if not expired via query, but we also want messages to disappear from DB after 2 mins? Since we can't run server code, we'll clean them on client side display and admin can also purge. But to meet requirement "message deletes after 2 mins you sent it" we add a background cleanup: we'll call a function to delete messages that are older than 2min on each load / periodically.
-        // Implement deleteExpiredMessages function.
-        deleteExpiredMessagesForChat(chatId);
+        // Cleanup expired messages after send
+        setTimeout(() => deleteExpiredMessagesForChat(chatId), 100);
     }
 
-    async function deleteExpiredMessagesForChat(chatId) {
-        const messagesCol = db.collection('privateMessages').doc(chatId).collection('messages');
-        const now = firebase.firestore.Timestamp.now();
-        const expired = await messagesCol.where('expiresAt', '<=', now).get();
-        expired.forEach(doc => doc.ref.delete());
-    }
-
-    // Generate consistent chat id
-    function generateChatId(user1, user2) {
-        return [user1, user2].sort().join('_');
-    }
-
-    // Admin Functions
-    async function adminDeleteUser(username) {
-        if(currentUser?.role !== 'admin') return;
-        if(username === currentUser.username) { alert("Cannot delete yourself"); return; }
-        if(!confirm(`Delete user "${username}" and all their messages?`)) return;
-        // delete user document
-        await db.collection('users').doc(username).delete();
-        // delete all private messages where this user is participant (search through chats)
+    // periodic global cleanup every 25s
+    setInterval(async () => {
+        if (!currentUser) return;
         const allChats = await db.collection('privateMessages').get();
-        for(const chatDoc of allChats.docs) {
-            const chatId = chatDoc.id;
-            if(chatId.includes(username)) {
-                await db.collection('privateMessages').doc(chatId).delete();
+        for (const chatDoc of allChats.docs) {
+            const msgCol = db.collection('privateMessages').doc(chatDoc.id).collection('messages');
+            const now = firebase.firestore.Timestamp.now();
+            const expired = await msgCol.where('expiresAt', '<=', now).get();
+            expired.forEach(d => d.ref.delete());
+        }
+        if (currentChatPartner && unsubscribeMessages) {
+            loadPrivateMessages(currentUser.username, currentChatPartner);
+        }
+    }, 25000);
+
+    // --- ADMIN POWER FUNCTIONS ---
+    async function adminDeleteUser(username) {
+        if (currentUser?.role !== 'admin') return;
+        if (username === currentUser.username) { alert("can't delete yourself"); return; }
+        if (!confirm(`delete user "${username}" and ALL private messages?`)) return;
+        await db.collection('users').doc(username).delete();
+        const allChats = await db.collection('privateMessages').get();
+        for (const chat of allChats.docs) {
+            if (chat.id.includes(username)) {
+                await db.collection('privateMessages').doc(chat.id).delete();
             } else {
-                // maybe messages inside? skip
+                // also delete subcollection messages if user appears inside? but we delete full chat later if user participant. Simpler: delete any message where sender/receiver = username
+                const subMsgs = await db.collection('privateMessages').doc(chat.id).collection('messages').where('sender', '==', username).get();
+                subMsgs.forEach(m => m.ref.delete());
+                const subMsgs2 = await db.collection('privateMessages').doc(chat.id).collection('messages').where('receiver', '==', username).get();
+                subMsgs2.forEach(m => m.ref.delete());
             }
         }
-        alert(`User ${username} deleted.`);
-        if(currentChatPartner === username) {
+        alert(`🧹 ${username} erased.`);
+        if (currentChatPartner === username) {
             currentChatPartner = null;
-            document.getElementById('chatHeader').innerHTML = '💬 Select a user to start chatting';
+            document.getElementById('chatHeader').innerHTML = '💬 select someone';
             document.getElementById('messageInput').disabled = true;
             document.getElementById('sendMsgBtn').disabled = true;
-            if(unsubscribeMessages) unsubscribeMessages();
-            document.getElementById('messagesContainer').innerHTML = '<div style="text-align:center; color:#aaa;">Chat ended</div>';
+            if (unsubscribeMessages) unsubscribeMessages();
+            document.getElementById('messagesContainer').innerHTML = '<div style="text-align:center; color:#52525b;">chat closed</div>';
         }
     }
 
     async function adminViewPasswords() {
-        if(currentUser?.role !== 'admin') return;
-        const usersSnapshot = await db.collection('users').get();
-        let passList = '';
-        usersSnapshot.forEach(doc => {
-            const data = doc.data();
-            passList += `${data.username} : ${data.password}\n`;
-        });
-        document.getElementById('passwordViewer').innerText = passList || 'No users.';
-        setTimeout(() => {
-            if(document.getElementById('passwordViewer')) document.getElementById('passwordViewer').innerText = '';
-        }, 8000);
+        if (currentUser?.role !== 'admin') return;
+        const snapshot = await db.collection('users').get();
+        let list = '';
+        snapshot.forEach(d => { list += `${d.data().username} : ${d.data().password}\n`; });
+        const viewer = document.getElementById('passwordViewer');
+        viewer.innerText = list || 'no users found';
+        setTimeout(() => { if (viewer) viewer.innerText = ''; }, 6000);
     }
 
     async function adminDeleteAllChats() {
-        if(currentUser?.role !== 'admin') return;
-        if(!confirm('⚠️ DELETE ALL PRIVATE MESSAGES PERMANENTLY? This action cannot be undone.')) return;
-        const chatsSnapshot = await db.collection('privateMessages').get();
-        for(const doc of chatsSnapshot.docs) {
-            const subCol = await db.collection('privateMessages').doc(doc.id).collection('messages').get();
-            for(const msgDoc of subCol.docs) {
-                await msgDoc.ref.delete();
-            }
-            await doc.ref.delete();
+        if (currentUser?.role !== 'admin') return;
+        if (!confirm('⚠️ PERMANENT: delete EVERY private message in hilomchat? this action cannot be undone.')) return;
+        const allChatRooms = await db.collection('privateMessages').get();
+        for (const room of allChatRooms.docs) {
+            const sub = await db.collection('privateMessages').doc(room.id).collection('messages').get();
+            for (const msgDoc of sub.docs) await msgDoc.ref.delete();
+            await room.ref.delete();
         }
-        alert('All chat messages have been deleted.');
-        if(currentChatPartner && unsubscribeMessages) loadMessages(currentUser.username, currentChatPartner);
+        alert('all whispers have been silenced (deleted).');
+        if (currentChatPartner && unsubscribeMessages) loadPrivateMessages(currentUser.username, currentChatPartner);
     }
 
-    // UI binding and init
+    // seed default accounts: admin, User27, User09
+    async function seedDefaults() {
+        const defaults = [
+            { username: 'admin', password: '181818', role: 'admin' },
+            { username: 'User27', password: 'thewayyou', role: 'user' },
+            { username: 'User09', password: 'thewayyou', role: 'user' }
+        ];
+        for (const acc of defaults) {
+            const ref = db.collection('users').doc(acc.username);
+            const snap = await ref.get();
+            if (!snap.exists) {
+                await ref.set({ ...acc, online: false, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+            }
+        }
+    }
+    seedDefaults();
+
+    // ---- UI EVENT BINDINGS ----
     document.getElementById('loginBtn').addEventListener('click', async () => {
         const username = document.getElementById('authUsername').value.trim();
         const password = document.getElementById('authPassword').value;
-        if(!username || !password) { showError('Please fill both fields'); return; }
-        const isRegisterFlow = document.getElementById('authUsername').dataset.mode === 'register';
-        const success = await authenticate(username, password, isRegisterFlow);
-        if(success) {
-            // Set online status
-            await setOnlineStatus(true);
-            // Load Dashboard
+        if (!username || !password) { showError('fill both fields'); return; }
+        const isRegisterMode = document.getElementById('authUsername').dataset.mode === 'register';
+        const ok = await authenticate(username, password, isRegisterMode);
+        if (ok) {
+            await setOnline(true);
             document.getElementById('authPanel').style.display = 'none';
             document.getElementById('dashboard').style.display = 'flex';
             document.getElementById('currentUserDisplay').innerText = currentUser.username;
-            document.getElementById('userRoleDisplay').innerText = currentUser.role === 'admin' ? '👑 Admin' : '👤 User';
-            if(currentUser.role === 'admin') {
+            document.getElementById('userRoleDisplay').innerHTML = currentUser.role === 'admin' ? '👑 admin · full control' : '🌙 member';
+            if (currentUser.role === 'admin') {
                 document.getElementById('adminPanel').style.display = 'block';
             } else {
                 document.getElementById('adminPanel').style.display = 'none';
             }
-            listenOnlineUsers();
-            // Add presence disconnection
-            window.addEventListener('beforeunload', () => setOnlineStatus(false));
+            listenOnlineAndUsers();
+            window.addEventListener('beforeunload', () => setOnline(false));
         }
     });
 
     document.getElementById('showRegister').addEventListener('click', () => {
-        const btn = document.getElementById('loginBtn');
-        const usernameField = document.getElementById('authUsername');
-        usernameField.dataset.mode = 'register';
-        btn.innerText = 'Register New Account';
-        document.getElementById('showRegister').innerText = 'Already have an account? Login';
+        document.getElementById('loginBtn').innerText = '✨ register account';
+        document.getElementById('authUsername').dataset.mode = 'register';
+        document.getElementById('showRegister').innerText = 'back to login';
         document.getElementById('showRegister').id = 'showLogin';
         document.getElementById('showLogin').addEventListener('click', () => location.reload());
     });
 
     document.getElementById('logoutSideBtn').addEventListener('click', async () => {
-        if(currentUser) await setOnlineStatus(false);
+        if (currentUser) await setOnline(false);
         location.reload();
     });
 
     document.getElementById('sendMsgBtn').addEventListener('click', async () => {
-        const input = document.getElementById('messageInput');
-        const text = input.value;
-        if(text.trim()) {
-            await sendMessage(text);
-            input.value = '';
-        }
+        const inp = document.getElementById('messageInput');
+        await sendMessage(inp.value);
+        inp.value = '';
     });
-    document.getElementById('messageInput').addEventListener('keypress', (e) => {
-        if(e.key === 'Enter') document.getElementById('sendMsgBtn').click();
-    });
+    document.getElementById('messageInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('sendMsgBtn').click(); });
 
-    // Admin buttons
-    document.getElementById('adminDeleteUserBtn')?.addEventListener('click', async () => {
-        const username = document.getElementById('adminDeleteUserInput').value.trim();
-        if(username) await adminDeleteUser(username);
-        else alert("Enter username");
+    // admin listeners
+    document.getElementById('adminDeleteUserBtn')?.addEventListener('click', () => {
+        const uname = document.getElementById('adminDeleteUserInput').value.trim();
+        if (uname) adminDeleteUser(uname);
+        else alert('enter username');
     });
     document.getElementById('adminViewPasswordsBtn')?.addEventListener('click', adminViewPasswords);
     document.getElementById('adminDeleteAllChatsBtn')?.addEventListener('click', adminDeleteAllChats);
 
-    // Default accounts insertion: User27, User09, admin
-    async function seedDefaultAccounts() {
-        const usersRef = db.collection('users');
-        const defaultUsers = [
-            { username: 'User27', password: 'thewayyou', role: 'user' },
-            { username: 'User09', password: 'thewayyou', role: 'user' },
-            { username: 'admin', password: '181818', role: 'admin' }
-        ];
-        for(const u of defaultUsers) {
-            const docSnap = await usersRef.doc(u.username).get();
-            if(!docSnap.exists) {
-                await usersRef.doc(u.username).set({
-                    username: u.username,
-                    password: u.password,
-                    role: u.role,
-                    online: false,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-            }
-        }
-    }
-    seedDefaultAccounts();
-
-    function escapeHtml(str) {
-        if(!str) return '';
-        return str.replace(/[&<>]/g, function(m) {
-            if(m === '&') return '&amp;';
-            if(m === '<') return '&lt;';
-            if(m === '>') return '&gt;';
-            return m;
-        });
-    }
-
-    // Periodic cleanup of expired messages globally (every 30s)
-    setInterval(async () => {
-        if(!currentUser) return;
-        const allChats = await db.collection('privateMessages').get();
-        for(const chat of allChats.docs) {
-            const msgCol = db.collection('privateMessages').doc(chat.id).collection('messages');
-            const now = firebase.firestore.Timestamp.now();
-            const expired = await msgCol.where('expiresAt', '<=', now).get();
-            expired.forEach(d => d.ref.delete());
-        }
-        if(currentChatPartner && unsubscribeMessages) {
-            loadMessages(currentUser.username, currentChatPartner);
-        }
-    }, 30000);
+    function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
 </script>
 </body>
 </html>
