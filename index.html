@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-    <title>Messenger Live · Private Chat</title>
+    <title>Simple Chat · Messenger</title>
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <style>
         * {
             margin: 0;
@@ -17,128 +16,128 @@
         }
 
         body {
-            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif;
-            background: #0e0e10;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #1a1a1a;
             height: 100vh;
             display: flex;
-            align-items: center;
             justify-content: center;
+            align-items: center;
             overflow: hidden;
         }
 
-        /* Messenger container */
-        .app-container {
+        /* Phone-like container */
+        .phone {
             width: 100%;
-            max-width: 500px;
+            max-width: 450px;
             height: 100vh;
-            background: #f8f9fc;
-            box-shadow: 0 0 30px rgba(0,0,0,0.2);
+            background: #f5f7fb;
             display: flex;
             flex-direction: column;
             position: relative;
-            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
         }
 
-        /* screens */
+        /* Screens */
         .screen {
             flex: 1;
             display: flex;
             flex-direction: column;
-            transition: all 0.2s ease;
-            overflow-y: auto;
+            overflow: hidden;
         }
 
         .hidden {
             display: none !important;
         }
 
-        /* auth panel (login) */
-        .auth-card {
+        /* Login Card */
+        .login-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: linear-gradient(145deg, #f0f2f5 0%, #e4e9f0 100%);
+        }
+
+        .login-card {
             background: white;
-            margin: auto 20px;
             border-radius: 32px;
-            padding: 28px 24px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+            padding: 32px 24px;
+            width: 100%;
+            box-shadow: 0 8px 28px rgba(0,0,0,0.12);
         }
 
-        .auth-title {
-            font-size: 28px;
+        .logo {
+            font-size: 32px;
             font-weight: 700;
-            margin-bottom: 28px;
             text-align: center;
-            color: #1b2e4b;
+            margin-bottom: 32px;
+            color: #0084ff;
         }
 
-        .input-group {
-            margin-bottom: 20px;
-        }
-
-        .input-group input {
+        .input-field {
             width: 100%;
             padding: 14px 18px;
+            margin-bottom: 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 30px;
             font-size: 16px;
-            border: 1px solid #ddd;
-            border-radius: 28px;
-            background: #f5f7fb;
+            background: #f8fafc;
             outline: none;
-            transition: 0.2s;
+            transition: all 0.2s;
         }
 
-        .input-group input:focus {
+        .input-field:focus {
             border-color: #0084ff;
             background: white;
         }
 
-        .btn {
+        .login-btn {
+            width: 100%;
+            padding: 14px;
             background: #0084ff;
             color: white;
             border: none;
-            padding: 14px;
-            width: 100%;
-            border-radius: 40px;
+            border-radius: 30px;
+            font-size: 17px;
             font-weight: 600;
-            font-size: 16px;
             cursor: pointer;
-            transition: 0.2s;
+            margin-top: 8px;
         }
 
-        .btn-danger {
-            background: #e34f4f;
-        }
-
-        .btn-outline {
-            background: transparent;
-            border: 1px solid #0084ff;
-            color: #0084ff;
-        }
-
-        .error-text {
-            color: #d32f2f;
+        .error-msg {
+            color: #e53e3e;
             font-size: 13px;
-            margin-top: 12px;
             text-align: center;
+            margin-top: 12px;
         }
 
-        /* Main dashboard header */
-        .chat-header {
+        .info-text {
+            text-align: center;
+            font-size: 12px;
+            color: #718096;
+            margin-top: 20px;
+        }
+
+        /* Header */
+        .header {
             background: white;
             padding: 14px 18px;
-            border-bottom: 1px solid #e9eaef;
             display: flex;
-            align-items: center;
             justify-content: space-between;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+            align-items: center;
+            border-bottom: 1px solid #e9ecef;
         }
 
-        .user-welcome {
+        .user-name {
             font-weight: 600;
             font-size: 16px;
             background: #eef2f7;
             padding: 6px 14px;
-            border-radius: 40px;
+            border-radius: 30px;
         }
 
-        .logout-icon, .back-btn {
+        .icon-btn {
             background: none;
             border: none;
             font-size: 24px;
@@ -151,16 +150,16 @@
             justify-content: center;
         }
 
-        /* People list (active users) */
-        .people-list {
+        /* Users List */
+        .users-container {
             flex: 1;
             overflow-y: auto;
             padding: 8px 0;
         }
 
-        .section-title {
-            font-size: 14px;
+        .section-header {
             padding: 12px 18px 6px;
+            font-size: 13px;
             color: #6c757d;
             font-weight: 500;
         }
@@ -170,66 +169,86 @@
             align-items: center;
             padding: 12px 18px;
             gap: 14px;
-            border-bottom: 1px solid #efeff4;
             cursor: pointer;
-            transition: background 0.1s;
+            transition: background 0.15s;
+            border-bottom: 1px solid #edf2f7;
         }
 
         .user-item:active {
-            background: #eef2fa;
+            background: #e9ecef;
         }
 
         .avatar {
-            width: 48px;
-            height: 48px;
-            background: #0084ff20;
+            width: 52px;
+            height: 52px;
+            background: #0084ff15;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: bold;
-            font-size: 20px;
+            font-size: 22px;
+            font-weight: 600;
             color: #0084ff;
         }
 
-        .user-info {
+        .user-details {
             flex: 1;
         }
 
-        .user-name {
+        .user-fullname {
             font-weight: 600;
             font-size: 16px;
         }
 
-        .user-status {
+        .online-badge {
             font-size: 12px;
-            color: #34c759;
+            color: #38a169;
         }
 
-        /* chat conversation view */
-        .conversation-view {
-            flex: 1;
+        /* Chat View */
+        .chat-header {
+            background: white;
+            padding: 12px 16px;
             display: flex;
-            flex-direction: column;
-            background: #f8f9fc;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid #e9ecef;
         }
 
-        .chat-window {
+        .back-btn {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chat-title {
+            flex: 1;
+            font-weight: 600;
+            font-size: 17px;
+        }
+
+        .messages-area {
             flex: 1;
             overflow-y: auto;
             padding: 16px 12px;
             display: flex;
             flex-direction: column;
             gap: 8px;
+            background: #f8f9fc;
         }
 
-        .message-bubble {
+        .message {
             max-width: 80%;
             padding: 10px 14px;
             border-radius: 22px;
             font-size: 15px;
             word-wrap: break-word;
-            position: relative;
         }
 
         .message-sent {
@@ -242,69 +261,64 @@
         .message-received {
             align-self: flex-start;
             background: white;
-            color: #1c1c1e;
-            border: 0.5px solid #e2e2e8;
+            color: #1a202c;
+            border: 0.5px solid #e2e8f0;
             border-bottom-left-radius: 4px;
         }
 
-        .message-meta {
+        .message-time {
             font-size: 10px;
-            margin-top: 4px;
             opacity: 0.7;
-            display: flex;
-            justify-content: flex-end;
-            gap: 6px;
+            margin-top: 4px;
+            text-align: right;
         }
 
-        .chat-input-area {
+        .input-area {
             background: white;
-            padding: 10px 12px;
-            border-top: 1px solid #e9eaef;
+            padding: 10px 14px;
             display: flex;
             gap: 10px;
-            align-items: center;
+            border-top: 1px solid #e9ecef;
         }
 
-        .chat-input-area input {
+        .message-input {
             flex: 1;
             padding: 12px 16px;
+            border: 1px solid #e2e8f0;
             border-radius: 30px;
-            border: 1px solid #ddd;
             font-size: 15px;
-            background: #f8f9fc;
+            background: #f8fafc;
         }
 
         .send-btn {
             background: #0084ff;
             border: none;
-            width: 44px;
-            height: 44px;
+            width: 48px;
+            height: 48px;
             border-radius: 30px;
             color: white;
             font-size: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             cursor: pointer;
         }
 
-        /* admin panel modal drawer */
-        .admin-drawer {
+        /* Admin Panel (Simple Drawer) */
+        .admin-panel {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
+            max-width: 450px;
+            margin: 0 auto;
             background: white;
             border-radius: 28px 28px 0 0;
-            max-height: 85%;
+            max-height: 80%;
             overflow-y: auto;
             z-index: 1000;
             padding: 20px;
-            box-shadow: 0 -4px 20px rgba(0,0,0,0.2);
-            transition: transform 0.2s;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
         }
 
-        .admin-drawer.hidden {
+        .admin-panel.hidden {
             display: none;
         }
 
@@ -318,191 +332,181 @@
             z-index: 999;
         }
 
-        .admin-header {
-            font-weight: bold;
+        .admin-title {
             font-size: 20px;
+            font-weight: 700;
             margin-bottom: 16px;
         }
 
-        .user-row {
+        .admin-user-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid #eee;
+            padding: 12px 0;
+            border-bottom: 1px solid #edf2f7;
         }
 
-        .small-btn {
-            background: #e34f4f;
-            padding: 6px 14px;
-            border-radius: 30px;
-            color: white;
+        .delete-user-btn, .delete-chat-btn {
+            background: #e53e3e;
             border: none;
+            padding: 6px 14px;
+            border-radius: 20px;
+            color: white;
             font-size: 12px;
-            margin-left: 6px;
+            cursor: pointer;
         }
 
         .close-admin {
-            background: #ccc;
-            margin-top: 12px;
+            width: 100%;
+            margin-top: 20px;
+            background: #cbd5e0;
         }
 
-        .admin-pass {
-            font-size: 12px;
-            color: gray;
-        }
-
-        button {
-            cursor: pointer;
+        .empty-state {
+            text-align: center;
+            color: #a0aec0;
+            padding: 40px;
         }
     </style>
 </head>
 <body>
-<div class="app-container" id="appRoot">
+<div class="phone" id="app">
     <!-- LOGIN SCREEN -->
     <div id="loginScreen" class="screen">
-        <div class="auth-card">
-            <div class="auth-title">Messenger Live</div>
-            <div class="input-group"><input type="text" id="loginUsername" placeholder="Username" autocomplete="off"></div>
-            <div class="input-group"><input type="password" id="loginPassword" placeholder="Password"></div>
-            <button class="btn" id="doLoginBtn">Sign in</button>
-            <div id="loginError" class="error-text"></div>
-            <div style="margin-top: 16px; font-size:12px; text-align:center; color:#aaa;">New? Just create account</div>
-        </div>
-    </div>
-
-    <!-- MAIN DASHBOARD: users list & chat -->
-    <div id="dashboardScreen" class="screen hidden">
-        <div class="chat-header">
-            <button id="adminBtnHeader" class="logout-icon" style="font-size:22px;">⚙️</button>
-            <span class="user-welcome" id="currentUsernameDisplay">User</span>
-            <button id="logoutBtnMain" class="logout-icon">🚪</button>
-        </div>
-
-        <!-- PEOPLE LIST (active users) -->
-        <div id="peopleListContainer" class="people-list">
-            <div class="section-title">Active Contacts</div>
-            <div id="usersList"></div>
-        </div>
-    </div>
-
-    <!-- CHAT CONVERSATION VIEW (private chat) -->
-    <div id="chatViewScreen" class="screen hidden">
-        <div class="chat-header">
-            <button id="backToPeopleBtn" class="back-btn">←</button>
-            <span id="chatWithName" style="font-weight:600;">Chat</span>
-            <div style="width:40px;"></div>
-        </div>
-        <div class="conversation-view">
-            <div id="chatMessagesArea" class="chat-window"></div>
-            <div class="chat-input-area">
-                <input type="text" id="messageInput" placeholder="Message...">
-                <button id="sendMessageBtn" class="send-btn">➤</button>
+        <div class="login-container">
+            <div class="login-card">
+                <div class="logo">💬 Messenger</div>
+                <input type="text" id="loginUser" class="input-field" placeholder="Username" autocomplete="off">
+                <input type="password" id="loginPass" class="input-field" placeholder="Password">
+                <button id="loginBtn" class="login-btn">Sign In / Sign Up</button>
+                <div id="loginErrorMsg" class="error-msg"></div>
+                <div class="info-text">New? Just enter any username + password (min 6 chars)</div>
+                <div class="info-text" style="margin-top:8px;">Demo: User27 / thewayyou | admin / 181818</div>
             </div>
         </div>
     </div>
 
-    <!-- admin drawer -->
-    <div id="adminOverlay" class="overlay hidden"></div>
-    <div id="adminDrawer" class="admin-drawer hidden">
-        <div class="admin-header">👑 Admin Control</div>
-        <div id="adminUsersList"></div>
-        <div id="adminChatsSection" style="margin-top: 20px;">
-            <div style="font-weight:600;">All Private Chats (delete any)</div>
-            <div id="adminChatsList"></div>
+    <!-- MAIN DASHBOARD (Users List) -->
+    <div id="dashboardScreen" class="screen hidden">
+        <div class="header">
+            <button id="adminBtn" class="icon-btn">⚙️</button>
+            <span class="user-name" id="currentUserLabel">User</span>
+            <button id="logoutBtn" class="icon-btn">🚪</button>
         </div>
-        <button id="closeAdminDrawer" class="btn close-admin" style="background:#aaa;">Close</button>
+        <div class="users-container">
+            <div class="section-header">✨ Active People</div>
+            <div id="usersList"></div>
+        </div>
+    </div>
+
+    <!-- CHAT SCREEN -->
+    <div id="chatScreen" class="screen hidden">
+        <div class="chat-header">
+            <button id="backBtn" class="back-btn">←</button>
+            <div class="chat-title" id="chatPartnerName">Chat</div>
+            <div style="width:40px;"></div>
+        </div>
+        <div id="messagesContainer" class="messages-area"></div>
+        <div class="input-area">
+            <input type="text" id="chatInput" class="message-input" placeholder="Type a message...">
+            <button id="sendChatBtn" class="send-btn">📤</button>
+        </div>
+    </div>
+
+    <!-- ADMIN DRAWER -->
+    <div id="adminOverlay" class="overlay hidden"></div>
+    <div id="adminDrawer" class="admin-panel hidden">
+        <div class="admin-title">👑 Admin Control</div>
+        <div id="adminUsersContainer"></div>
+        <div style="margin-top: 20px;"><strong>🗑️ All Conversations</strong></div>
+        <div id="adminChatsContainer"></div>
+        <button id="closeAdminBtn" class="login-btn close-admin" style="background:#a0aec0;">Close</button>
     </div>
 </div>
 
 <script>
-    // ------------------- FIREBASE INIT -------------------
+    // ---------- FIREBASE INIT ----------
     const firebaseConfig = {
         apiKey: "AIzaSyCW71xwMV6DS6ggu-Q-TXX8OeKW-aWUKuY",
         authDomain: "chatapp-1dabd.firebaseapp.com",
         projectId: "chatapp-1dabd",
         storageBucket: "chatapp-1dabd.firebasestorage.app",
         messagingSenderId: "203806709864",
-        appId: "1:203806709864:web:f739450e99bcb5964043dd",
-        measurementId: "G-YE19PXXBEZ"
+        appId: "1:203806709864:web:f739450e99bcb5964043dd"
     };
-    const app = firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
-    const auth = firebase.auth();
+    const firebaseApp = firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-    // Global state
-    let currentUser = null;       // { username, password, isAdmin }
-    let activeChatPartner = null; // username of person we're chatting with
-    let currentChatRef = null;    // database reference for messages
-    let messageTimeoutIds = new Map(); // store timeouts per messageId
+    // ---------- GLOBAL STATE ----------
+    let currentUser = null;           // { username, isAdmin }
+    let currentChatWith = null;       // username of person we are chatting with
+    let currentMessagesRef = null;    // Firebase reference for current chat
+    let messageTimeouts = new Map();   // store timeouts for auto-delete
 
-    // Helper: sanitize
-    function sanitize(str) { return str.replace(/[.#$[\]]/g, '_'); }
-
-    // User presence: go online/offline
-    function setUserOnline(username, isOnline) {
-        if (!username) return;
-        const userStatusRef = database.ref('users/' + sanitize(username));
-        if (isOnline) {
-            userStatusRef.update({ username: username, online: true, lastSeen: Date.now() });
-            const connRef = database.ref('.info/connected');
-            connRef.on('value', (snap) => {
-                if (snap.val() === true) {
-                    userStatusRef.update({ online: true });
-                    userStatusRef.onDisconnect().update({ online: false, lastSeen: Date.now() });
-                }
-            });
-        } else {
-            userStatusRef.update({ online: false, lastSeen: Date.now() });
-        }
+    // Helper: sanitize for firebase keys
+    function sanitize(str) {
+        return str.replace(/[.#$\[\]]/g, '_');
     }
 
-    // Create new user account
-    async function registerUser(username, password) {
-        const usersRef = database.ref('users/' + sanitize(username));
-        const snapshot = await usersRef.once('value');
-        if (snapshot.exists()) throw new Error('Username taken');
-        if (password.length < 6) throw new Error('Password must be at least 6 digits');
-        await usersRef.set({
-            username: username,
-            password: password,
-            online: true,
-            isAdmin: (username === 'admin'),   // admin only if admin
-            createdAt: Date.now()
-        });
-        return true;
+    // Generate unique chat room ID (sorted usernames)
+    function getChatRoomId(user1, user2) {
+        let a = sanitize(user1), b = sanitize(user2);
+        return a < b ? `${a}_${b}` : `${b}_${a}`;
     }
 
-    // Login logic
-    async function loginUser(username, password) {
-        const usersRef = database.ref('users');
-        const snapshot = await usersRef.once('value');
-        const users = snapshot.val();
-        if (!users) throw new Error('No users');
-        for (let key in users) {
-            if (users[key].username === username && users[key].password === password) {
-                return { username: username, isAdmin: users[key].isAdmin === true, password: password };
+    // ---------- AUTH & USER MANAGEMENT ----------
+    async function createOrLoginUser(username, password) {
+        const userRef = db.ref(`users/${sanitize(username)}`);
+        const snapshot = await userRef.once('value');
+        
+        if (snapshot.exists()) {
+            // User exists, verify password
+            const userData = snapshot.val();
+            if (userData.password === password) {
+                return { username, isAdmin: userData.isAdmin === true };
+            } else {
+                throw new Error("Wrong password");
             }
+        } else {
+            // New user: create account (min 6 chars password)
+            if (password.length < 6) throw new Error("Password must be at least 6 characters");
+            const isAdmin = (username === 'admin');
+            await userRef.set({
+                username: username,
+                password: password,
+                isAdmin: isAdmin,
+                online: true,
+                createdAt: Date.now()
+            });
+            return { username, isAdmin };
         }
-        throw new Error('Invalid credentials');
     }
 
-    // Load active users list (online true)
+    // Set online status
+    function setOnlineStatus(username, isOnline) {
+        if (!username) return;
+        const userRef = db.ref(`users/${sanitize(username)}`);
+        userRef.update({ online: isOnline, lastSeen: Date.now() });
+        if (isOnline) {
+            userRef.onDisconnect().update({ online: false, lastSeen: Date.now() });
+        }
+    }
+
+    // Load all online users (excluding current user)
     function loadActiveUsers() {
         if (!currentUser) return;
-        const usersRef = database.ref('users');
+        const usersRef = db.ref('users');
+        usersRef.off(); // remove old listener
         usersRef.on('value', (snapshot) => {
             const users = snapshot.val();
-            const activeUsers = [];
+            const activeList = [];
             for (let key in users) {
                 const u = users[key];
-                if (u.username && u.username !== currentUser.username && u.online === true) {
-                    activeUsers.push({ username: u.username, online: true });
+                if (u && u.username && u.username !== currentUser.username && u.online === true) {
+                    activeList.push({ username: u.username });
                 }
             }
-            renderUsersList(activeUsers);
-            if (currentUser.isAdmin) document.getElementById('adminBtnHeader').style.display = 'flex';
-            else document.getElementById('adminBtnHeader').style.display = 'none';
+            renderUsersList(activeList);
         });
     }
 
@@ -510,317 +514,360 @@
         const container = document.getElementById('usersList');
         if (!container) return;
         if (users.length === 0) {
-            container.innerHTML = '<div style="padding:20px; text-align:center; color:gray;">No active users</div>';
+            container.innerHTML = '<div class="empty-state">No active users online</div>';
             return;
         }
         container.innerHTML = users.map(u => `
-            <div class="user-item" data-username="${u.username}">
+            <div class="user-item" data-user="${u.username}">
                 <div class="avatar">${u.username.charAt(0).toUpperCase()}</div>
-                <div class="user-info">
-                    <div class="user-name">${escapeHtml(u.username)}</div>
-                    <div class="user-status">● Active now</div>
+                <div class="user-details">
+                    <div class="user-fullname">${escapeHtml(u.username)}</div>
+                    <div class="online-badge">● Online</div>
                 </div>
             </div>
         `).join('');
-        // attach click listeners
+        
+        // Add click listeners
         document.querySelectorAll('.user-item').forEach(el => {
-            el.addEventListener('click', (e) => {
-                const partner = el.getAttribute('data-username');
-                openPrivateChat(partner);
+            el.addEventListener('click', () => {
+                const partner = el.getAttribute('data-user');
+                openChatWith(partner);
             });
         });
     }
 
-    function escapeHtml(str) { return str.replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
 
-    // open chat with specific user
-    function openPrivateChat(partnerUsername) {
+    // ---------- CHAT FUNCTIONALITY ----------
+    function openChatWith(partnerUsername) {
         if (!currentUser) return;
-        activeChatPartner = partnerUsername;
+        // Cleanup previous listener
+        if (currentMessagesRef) {
+            currentMessagesRef.off();
+        }
+        // Clear any pending auto-delete timeouts
+        messageTimeouts.forEach(timeout => clearTimeout(timeout));
+        messageTimeouts.clear();
+        
+        currentChatWith = partnerUsername;
+        const roomId = getChatRoomId(currentUser.username, partnerUsername);
+        const messagesRef = db.ref(`chats/${roomId}/messages`);
+        currentMessagesRef = messagesRef;
+        
+        // Switch UI
         document.getElementById('dashboardScreen').classList.add('hidden');
-        document.getElementById('chatViewScreen').classList.remove('hidden');
-        document.getElementById('chatWithName').innerText = partnerUsername;
-        // load messages
-        const chatId = generateChatId(currentUser.username, partnerUsername);
-        const messagesRef = database.ref('chats/' + chatId + '/messages');
-        if (currentChatRef) currentChatRef.off();
-        currentChatRef = messagesRef;
-        // clear old timeouts for this chat
-        // attach listener
-        messagesRef.on('value', (snap) => {
-            const msgs = snap.val();
-            renderChatMessages(msgs, partnerUsername);
-            // Auto-delete after 2 minutes for each new message (already handled on send)
-            // But also ensure after load any pending expiry
-            if(msgs){
-                Object.keys(msgs).forEach(msgId => {
-                    const msg = msgs[msgId];
-                    if(msg && msg.timestamp && !msg._deleted){
-                        const age = Date.now() - msg.timestamp;
-                        if(age >= 120000){
+        document.getElementById('chatScreen').classList.remove('hidden');
+        document.getElementById('chatPartnerName').innerText = partnerUsername;
+        
+        // Load messages realtime
+        messagesRef.on('value', (snapshot) => {
+            const messages = snapshot.val();
+            renderMessages(messages);
+            // Schedule auto-delete for any new messages that are not yet expired
+            if (messages) {
+                const now = Date.now();
+                Object.keys(messages).forEach(msgId => {
+                    const msg = messages[msgId];
+                    if (msg && msg.timestamp && !msg._deleted) {
+                        const age = now - msg.timestamp;
+                        if (age >= 120000) {
+                            // already expired, delete now
                             messagesRef.child(msgId).remove();
                         } else {
                             const remaining = 120000 - age;
-                            if(!messageTimeoutIds.has(msgId)){
+                            if (!messageTimeouts.has(msgId)) {
                                 const tid = setTimeout(() => {
                                     messagesRef.child(msgId).remove();
-                                    messageTimeoutIds.delete(msgId);
+                                    messageTimeouts.delete(msgId);
                                 }, remaining);
-                                messageTimeoutIds.set(msgId, tid);
+                                messageTimeouts.set(msgId, tid);
                             }
                         }
                     }
                 });
             }
+            scrollToBottom();
         });
-        // scroll bottom
-        setTimeout(() => scrollChatBottom(), 50);
     }
 
-    function generateChatId(userA, userB) {
-        let u1 = userA, u2 = userB;
-        if (u1 > u2) [u1, u2] = [u2, u1];
-        return sanitize(u1) + '_' + sanitize(u2);
-    }
-
-    function renderChatMessages(messagesObj, partner) {
-        const container = document.getElementById('chatMessagesArea');
+    function renderMessages(messagesObj) {
+        const container = document.getElementById('messagesContainer');
         if (!container) return;
         if (!messagesObj) {
-            container.innerHTML = '<div style="text-align:center; color:gray;">No messages yet. Say hi!</div>';
+            container.innerHTML = '<div class="empty-state">✨ No messages yet. Say hi!</div>';
             return;
         }
-        let messagesArray = Object.keys(messagesObj).map(key => ({ id: key, ...messagesObj[key] }));
-        messagesArray.sort((a,b)=> a.timestamp - b.timestamp);
-        if(messagesArray.length === 0){
-            container.innerHTML = '<div style="text-align:center; color:gray;">No messages yet. Say hi!</div>';
+        const messagesList = Object.keys(messagesObj).map(key => ({ id: key, ...messagesObj[key] }));
+        messagesList.sort((a,b) => a.timestamp - b.timestamp);
+        
+        if (messagesList.length === 0) {
+            container.innerHTML = '<div class="empty-state">✨ No messages yet. Say hi!</div>';
             return;
         }
-        container.innerHTML = messagesArray.map(msg => {
+        
+        container.innerHTML = messagesList.map(msg => {
             const isSent = msg.sender === currentUser.username;
-            return `<div class="message-bubble ${isSent ? 'message-sent' : 'message-received'}">
-                        <div>${escapeHtml(msg.text)}</div>
-                        <div class="message-meta">${new Date(msg.timestamp).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div>
-                    </div>`;
+            const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            return `
+                <div class="message ${isSent ? 'message-sent' : 'message-received'}">
+                    <div>${escapeHtml(msg.text)}</div>
+                    <div class="message-time">${time}</div>
+                </div>
+            `;
         }).join('');
-        scrollChatBottom();
     }
 
-    function scrollChatBottom() {
-        const area = document.getElementById('chatMessagesArea');
-        if(area) area.scrollTop = area.scrollHeight;
-    }
-
-    // send message (auto delete after 2 min)
     async function sendMessage(text) {
-        if(!text.trim()) return;
-        if(!activeChatPartner) return;
-        const chatId = generateChatId(currentUser.username, activeChatPartner);
-        const messagesRef = database.ref('chats/' + chatId + '/messages');
+        if (!text.trim()) return;
+        if (!currentChatWith) return;
+        const roomId = getChatRoomId(currentUser.username, currentChatWith);
+        const messagesRef = db.ref(`chats/${roomId}/messages`);
         const newMsgRef = messagesRef.push();
-        const messageObj = {
+        const messageData = {
             text: text.trim(),
             sender: currentUser.username,
-            receiver: activeChatPartner,
-            timestamp: Date.now(),
+            receiver: currentChatWith,
+            timestamp: Date.now()
         };
-        await newMsgRef.set(messageObj);
-        // schedule auto deletion after 2 minutes (120000ms)
+        await newMsgRef.set(messageData);
+        
+        // Auto-delete after 2 minutes (120000 ms)
         const msgId = newMsgRef.key;
         const timeoutId = setTimeout(async () => {
             await newMsgRef.remove();
-            messageTimeoutIds.delete(msgId);
+            messageTimeouts.delete(msgId);
         }, 120000);
-        messageTimeoutIds.set(msgId, timeoutId);
-        document.getElementById('messageInput').value = '';
-        scrollChatBottom();
+        messageTimeouts.set(msgId, timeoutId);
+        
+        document.getElementById('chatInput').value = '';
+        scrollToBottom();
     }
 
-    // ADMIN functions: delete user & all chats, view passwords, delete any chat
+    function scrollToBottom() {
+        const container = document.getElementById('messagesContainer');
+        if (container) {
+            setTimeout(() => {
+                container.scrollTop = container.scrollHeight;
+            }, 50);
+        }
+    }
+
+    function backToDashboard() {
+        if (currentMessagesRef) {
+            currentMessagesRef.off();
+            currentMessagesRef = null;
+        }
+        messageTimeouts.forEach(tid => clearTimeout(tid));
+        messageTimeouts.clear();
+        currentChatWith = null;
+        document.getElementById('chatScreen').classList.add('hidden');
+        document.getElementById('dashboardScreen').classList.remove('hidden');
+        loadActiveUsers(); // refresh active list
+    }
+
+    // ---------- ADMIN FUNCTIONS ----------
     async function adminDeleteUser(targetUsername) {
-        if(!currentUser.isAdmin) return;
-        if(targetUsername === currentUser.username) { alert("Cannot delete yourself"); return; }
-        // remove user from users node
-        await database.ref('users/' + sanitize(targetUsername)).remove();
-        // find all chat rooms containing this user and delete them
-        const chatsRef = database.ref('chats');
+        if (!currentUser?.isAdmin) return;
+        if (targetUsername === currentUser.username) {
+            alert("Cannot delete yourself");
+            return;
+        }
+        // Delete user from users node
+        await db.ref(`users/${sanitize(targetUsername)}`).remove();
+        // Delete all chat rooms that involve this user
+        const chatsRef = db.ref('chats');
         const snapshot = await chatsRef.once('value');
         const chats = snapshot.val();
-        if(chats){
-            for(let chatId in chats){
-                if(chatId.includes(sanitize(targetUsername))){
+        if (chats) {
+            for (let chatId in chats) {
+                if (chatId.includes(sanitize(targetUsername))) {
                     await chatsRef.child(chatId).remove();
                 }
             }
         }
-        alert(`User ${targetUsername} deleted.`);
-        if(activeChatPartner === targetUsername) backToPeople();
+        alert(`User "${targetUsername}" deleted.`);
+        if (currentChatWith === targetUsername) backToDashboard();
+        loadAdminPanel(); // refresh admin view
+        loadActiveUsers(); // refresh user list
     }
 
     async function adminDeleteChatRoom(chatId) {
-        if(!currentUser.isAdmin) return;
-        await database.ref('chats/' + chatId).remove();
-        alert("Chat room deleted");
-        if(activeChatPartner){
-            const currentChatId = generateChatId(currentUser.username, activeChatPartner);
-            if(currentChatId === chatId){
-                backToPeople();
+        if (!currentUser?.isAdmin) return;
+        await db.ref(`chats/${chatId}`).remove();
+        alert("Conversation deleted");
+        if (currentChatWith) {
+            const currentRoom = getChatRoomId(currentUser.username, currentChatWith);
+            if (currentRoom === chatId) {
+                backToDashboard();
             }
         }
         loadAdminPanel();
     }
 
     async function loadAdminPanel() {
-        if(!currentUser.isAdmin) return;
-        // load all users with passwords
-        const usersSnap = await database.ref('users').once('value');
+        if (!currentUser?.isAdmin) return;
+        // Load all users with passwords
+        const usersSnap = await db.ref('users').once('value');
         const users = usersSnap.val() || {};
-        const userListDiv = document.getElementById('adminUsersList');
-        userListDiv.innerHTML = '<div style="font-weight:500;">👥 All Users & passwords</div>';
-        for(let key in users){
+        const adminUsersDiv = document.getElementById('adminUsersContainer');
+        adminUsersDiv.innerHTML = '<strong>👥 All Users (with passwords)</strong>';
+        for (let key in users) {
             const u = users[key];
-            if(u.username){
+            if (u && u.username) {
                 const row = document.createElement('div');
-                row.className = 'user-row';
-                row.innerHTML = `<div><strong>${escapeHtml(u.username)}</strong> <span class="admin-pass">pw: ${u.password}</span> ${u.isAdmin ? '👑' : ''}</div>
-                                 <div><button class="small-btn delete-user-btn" data-user="${u.username}">Delete user</button></div>`;
-                userListDiv.appendChild(row);
+                row.className = 'admin-user-row';
+                row.innerHTML = `
+                    <div><strong>${escapeHtml(u.username)}</strong> <span style="color:#718096; font-size:12px;">pw: ${u.password}</span> ${u.isAdmin ? '👑' : ''}</div>
+                    <button class="delete-user-btn" data-user="${u.username}">Delete</button>
+                `;
+                adminUsersDiv.appendChild(row);
             }
         }
+        // Attach delete user events
         document.querySelectorAll('.delete-user-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const uname = btn.getAttribute('data-user');
-                if(confirm(`Delete ${uname} and all their messages?`)) adminDeleteUser(uname);
+                if (confirm(`Delete "${uname}" and all their messages?`)) {
+                    adminDeleteUser(uname);
+                }
             });
         });
-
-        // all chat rooms
-        const chatsSnap = await database.ref('chats').once('value');
+        
+        // Load all chat rooms
+        const chatsSnap = await db.ref('chats').once('value');
         const chats = chatsSnap.val() || {};
-        const chatsDiv = document.getElementById('adminChatsList');
-        chatsDiv.innerHTML = '<div style="font-weight:500; margin-top:10px;">🗑️ All Conversations</div>';
-        for(let chatId in chats){
-            const participants = chatId.replace(/_/g,' & ');
+        const adminChatsDiv = document.getElementById('adminChatsContainer');
+        adminChatsDiv.innerHTML = '';
+        for (let chatId in chats) {
+            const participants = chatId.replace(/_/g, ' ↔ ');
             const msgCount = chats[chatId].messages ? Object.keys(chats[chatId].messages).length : 0;
-            const chatElem = document.createElement('div');
-            chatElem.className = 'user-row';
-            chatElem.innerHTML = `<div><strong>💬 ${participants}</strong> (${msgCount} msgs)</div>
-                                  <button class="small-btn delete-chat-btn" data-chat="${chatId}" style="background:#ff8c42;">Delete chat</button>`;
-            chatsDiv.appendChild(chatElem);
+            const row = document.createElement('div');
+            row.className = 'admin-user-row';
+            row.innerHTML = `
+                <div>💬 ${participants}<br><span style="font-size:11px;">${msgCount} messages</span></div>
+                <button class="delete-chat-btn" data-chat="${chatId}">Delete</button>
+            `;
+            adminChatsDiv.appendChild(row);
+        }
+        if (Object.keys(chats).length === 0) {
+            adminChatsDiv.innerHTML = '<div style="padding:12px 0; color:gray;">No conversations yet</div>';
         }
         document.querySelectorAll('.delete-chat-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const cid = btn.getAttribute('data-chat');
-                if(confirm(`Delete entire conversation?`)) adminDeleteChatRoom(cid);
+                const chatId = btn.getAttribute('data-chat');
+                if (confirm('Delete entire conversation?')) {
+                    adminDeleteChatRoom(chatId);
+                }
             });
         });
     }
 
-    function backToPeople() {
-        if(currentChatRef) currentChatRef.off();
-        currentChatRef = null;
-        activeChatPartner = null;
-        document.getElementById('chatViewScreen').classList.add('hidden');
-        document.getElementById('dashboardScreen').classList.remove('hidden');
-        loadActiveUsers();
-    }
-
+    // ---------- LOGOUT ----------
     function logout() {
-        if(currentUser){
-            setUserOnline(currentUser.username, false);
+        if (currentUser) {
+            setOnlineStatus(currentUser.username, false);
         }
-        if(currentChatRef) currentChatRef.off();
+        if (currentMessagesRef) {
+            currentMessagesRef.off();
+        }
+        messageTimeouts.forEach(tid => clearTimeout(tid));
+        messageTimeouts.clear();
         currentUser = null;
-        activeChatPartner = null;
-        messageTimeoutIds.forEach(tid => clearTimeout(tid));
-        messageTimeoutIds.clear();
+        currentChatWith = null;
         document.getElementById('dashboardScreen').classList.add('hidden');
-        document.getElementById('chatViewScreen').classList.add('hidden');
+        document.getElementById('chatScreen').classList.add('hidden');
         document.getElementById('loginScreen').classList.remove('hidden');
-        document.getElementById('loginUsername').value = '';
-        document.getElementById('loginPassword').value = '';
-        document.getElementById('loginError').innerText = '';
+        document.getElementById('loginUser').value = '';
+        document.getElementById('loginPass').value = '';
+        document.getElementById('loginErrorMsg').innerText = '';
     }
 
-    // ---------- EVENT LISTENERS ----------
-    document.getElementById('doLoginBtn').addEventListener('click', async () => {
-        const username = document.getElementById('loginUsername').value.trim();
-        const pwd = document.getElementById('loginPassword').value.trim();
-        if(!username || !pwd) { document.getElementById('loginError').innerText = 'Enter username/password'; return; }
-        try {
-            let userData;
-            try {
-                userData = await loginUser(username, pwd);
-            } catch(e) {
-                // try register if not exists
-                await registerUser(username, pwd);
-                userData = { username, isAdmin: (username === 'admin'), password: pwd };
-            }
-            currentUser = userData;
-            // set online
-            await database.ref('users/' + sanitize(username)).set({ username, password: pwd, online: true, isAdmin: currentUser.isAdmin, lastSeen: Date.now() });
-            setUserOnline(username, true);
-            document.getElementById('loginScreen').classList.add('hidden');
-            document.getElementById('dashboardScreen').classList.remove('hidden');
-            document.getElementById('currentUsernameDisplay').innerText = username;
-            loadActiveUsers();
-            // setup admin header
-            if(currentUser.isAdmin){
-                document.getElementById('adminBtnHeader').style.display = 'flex';
-            } else {
-                document.getElementById('adminBtnHeader').style.display = 'none';
-            }
-        } catch(err) {
-            document.getElementById('loginError').innerText = err.message;
-        }
-    });
-
-    document.getElementById('logoutBtnMain').addEventListener('click', logout);
-    document.getElementById('backToPeopleBtn').addEventListener('click', backToPeople);
-    document.getElementById('sendMessageBtn').addEventListener('click', () => {
-        const inp = document.getElementById('messageInput');
-        sendMessage(inp.value);
-    });
-    document.getElementById('messageInput').addEventListener('keypress', (e) => {
-        if(e.key === 'Enter') sendMessage(e.target.value);
-    });
-    // admin drawer
-    const adminBtn = document.getElementById('adminBtnHeader');
-    const adminDrawer = document.getElementById('adminDrawer');
-    const overlay = document.getElementById('adminOverlay');
-    adminBtn.addEventListener('click', async () => {
-        if(!currentUser.isAdmin) return;
-        await loadAdminPanel();
-        adminDrawer.classList.remove('hidden');
-        overlay.classList.remove('hidden');
-    });
-    function closeAdmin() {
-        adminDrawer.classList.add('hidden');
-        overlay.classList.add('hidden');
-    }
-    document.getElementById('closeAdminDrawer').addEventListener('click', closeAdmin);
-    overlay.addEventListener('click', closeAdmin);
-
-    // default accounts: admin/181818 & User27/thewayyou & User09/thewayyou
-    window.addEventListener('load', async () => {
-        const preset = [
+    // ---------- INIT DEFAULT ACCOUNTS ----------
+    async function setupDefaultAccounts() {
+        const defaultAccounts = [
             { username: 'admin', password: '181818', isAdmin: true },
             { username: 'User27', password: 'thewayyou', isAdmin: false },
             { username: 'User09', password: 'thewayyou', isAdmin: false }
         ];
-        for(let acc of preset){
-            const snap = await database.ref('users/' + sanitize(acc.username)).once('value');
-            if(!snap.exists()){
-                await database.ref('users/' + sanitize(acc.username)).set({
+        for (const acc of defaultAccounts) {
+            const ref = db.ref(`users/${sanitize(acc.username)}`);
+            const snap = await ref.once('value');
+            if (!snap.exists()) {
+                await ref.set({
                     username: acc.username,
                     password: acc.password,
                     isAdmin: acc.isAdmin,
                     online: false,
+                    createdAt: Date.now()
                 });
             }
         }
-        console.log('preset accounts ready');
+    }
+
+    // ---------- EVENT LISTENERS ----------
+    document.getElementById('loginBtn').addEventListener('click', async () => {
+        const username = document.getElementById('loginUser').value.trim();
+        const password = document.getElementById('loginPass').value.trim();
+        if (!username || !password) {
+            document.getElementById('loginErrorMsg').innerText = 'Please enter username and password';
+            return;
+        }
+        try {
+            const user = await createOrLoginUser(username, password);
+            currentUser = user;
+            setOnlineStatus(currentUser.username, true);
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('dashboardScreen').classList.remove('hidden');
+            document.getElementById('currentUserLabel').innerText = currentUser.username;
+            // Show/hide admin button
+            if (currentUser.isAdmin) {
+                document.getElementById('adminBtn').style.display = 'flex';
+            } else {
+                document.getElementById('adminBtn').style.display = 'none';
+            }
+            loadActiveUsers();
+        } catch (err) {
+            document.getElementById('loginErrorMsg').innerText = err.message;
+        }
     });
+
+    document.getElementById('logoutBtn').addEventListener('click', logout);
+    document.getElementById('backBtn').addEventListener('click', backToDashboard);
+    document.getElementById('sendChatBtn').addEventListener('click', () => {
+        const input = document.getElementById('chatInput');
+        sendMessage(input.value);
+    });
+    document.getElementById('chatInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendMessage(e.target.value);
+    });
+    
+    // Admin panel
+    const adminBtn = document.getElementById('adminBtn');
+    const adminDrawer = document.getElementById('adminDrawer');
+    const adminOverlay = document.getElementById('adminOverlay');
+    adminBtn.addEventListener('click', async () => {
+        if (!currentUser?.isAdmin) return;
+        await loadAdminPanel();
+        adminDrawer.classList.remove('hidden');
+        adminOverlay.classList.remove('hidden');
+    });
+    function closeAdminPanel() {
+        adminDrawer.classList.add('hidden');
+        adminOverlay.classList.add('hidden');
+    }
+    document.getElementById('closeAdminBtn').addEventListener('click', closeAdminPanel);
+    adminOverlay.addEventListener('click', closeAdminPanel);
+    
+    // Run setup
+    setupDefaultAccounts();
 </script>
 </body>
 </html>
