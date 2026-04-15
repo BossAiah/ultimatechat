@@ -1,237 +1,697 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ultimate Chat</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>DarkChat · Messenger</title>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
+    <!-- Emoji Picker (lightweight) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
+        }
 
-<style>
-body {
-  margin:0;
-  font-family: Arial;
-  background:#0d0d0d;
-  color:white;
-}
-.container {
-  max-width:500px;
-  margin:auto;
-  padding:15px;
-}
-input, button {
-  width:100%;
-  padding:12px;
-  margin-top:10px;
-  border:none;
-  border-radius:8px;
-}
-input { background:#1a1a1a; color:white; }
-button { background:#00c853; color:white; font-weight:bold; }
+        body {
+            background: #0a0c12;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 12px;
+        }
 
-.message {
-  background:#1e1e1e;
-  padding:10px;
-  margin-top:10px;
-  border-radius:10px;
-}
-.small { font-size:12px; color:#aaa; }
-.hidden { display:none; }
+        /* main container - phone friendly */
+        .app-container {
+            width: 100%;
+            max-width: 500px;
+            height: 90vh;
+            max-height: 800px;
+            background: #111318;
+            border-radius: 32px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            backdrop-filter: blur(2px);
+        }
 
-.admin {
-  background:#111;
-  padding:10px;
-  margin-top:10px;
-  border-radius:10px;
-}
-</style>
+        /* header area */
+        .chat-header {
+            background: #1e1f2c;
+            padding: 18px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            border-bottom: 1px solid #2c2e3a;
+        }
+        .brand {
+            font-weight: 700;
+            font-size: 1.45rem;
+            background: linear-gradient(135deg, #c084fc, #60a5fa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: -0.3px;
+        }
+        .user-badge {
+            background: #2a2c3b;
+            padding: 6px 12px;
+            border-radius: 60px;
+            font-size: 0.8rem;
+            color: #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .logout-btn {
+            background: none;
+            border: none;
+            color: #f87171;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        /* login panel */
+        .login-panel, .admin-panel {
+            background: #111318;
+            padding: 28px 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .login-title {
+            color: #f1f5f9;
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 28px;
+            text-align: center;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        .input-group label {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            margin-bottom: 6px;
+            display: block;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 14px 16px;
+            background: #1e1f2c;
+            border: 1px solid #2d3040;
+            border-radius: 24px;
+            color: #f8fafc;
+            font-size: 1rem;
+            outline: none;
+            transition: 0.2s;
+        }
+        .input-group input:focus {
+            border-color: #818cf8;
+            box-shadow: 0 0 0 2px rgba(99,102,241,0.3);
+        }
+        .btn-primary {
+            background: #4f46e5;
+            border: none;
+            width: 100%;
+            padding: 14px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 1rem;
+            color: white;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-primary:active { transform: scale(0.97); background: #6366f1; }
+        .error-msg {
+            color: #f97316;
+            text-align: center;
+            margin-top: 14px;
+            font-size: 0.85rem;
+        }
+
+        /* chat area (messages) */
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: #0f1017;
+        }
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        /* message bubbles */
+        .message {
+            display: flex;
+            flex-direction: column;
+            max-width: 85%;
+            padding: 10px 14px;
+            border-radius: 24px;
+            background: #1e293b;
+            color: #eef2ff;
+            word-break: break-word;
+            font-size: 0.95rem;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+        .message.own {
+            align-self: flex-end;
+            background: #2563eb;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        .message.other {
+            align-self: flex-start;
+            background: #1e1f2c;
+            border-bottom-left-radius: 4px;
+        }
+        .msg-sender {
+            font-weight: 700;
+            font-size: 0.75rem;
+            margin-bottom: 4px;
+            color: #cbd5e1;
+            letter-spacing: 0.3px;
+        }
+        .message.own .msg-sender { color: #e0f2fe; }
+        .msg-text {
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+        .timestamp {
+            font-size: 0.6rem;
+            text-align: right;
+            margin-top: 4px;
+            opacity: 0.7;
+        }
+        /* input row */
+        .input-row {
+            background: #1a1c26;
+            padding: 12px 14px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            border-top: 1px solid #2c2e3a;
+        }
+        .input-row input {
+            flex: 1;
+            background: #252836;
+            border: none;
+            padding: 12px 18px;
+            border-radius: 40px;
+            color: white;
+            font-size: 0.95rem;
+            outline: none;
+        }
+        .emoji-btn, .send-btn {
+            background: #2d2f3e;
+            border: none;
+            width: 44px;
+            height: 44px;
+            border-radius: 44px;
+            color: #cbd5e6;
+            font-size: 1.4rem;
+            cursor: pointer;
+            transition: 0.1s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .send-btn {
+            background: #4f46e5;
+            color: white;
+        }
+        .send-btn:active, .emoji-btn:active { transform: scale(0.95); }
+
+        /* admin dashboard drawer */
+        .admin-drawer {
+            background: #0b0d14;
+            border-top: 2px solid #334155;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 55%;
+            overflow-y: auto;
+        }
+        .admin-title {
+            color: #a5b4fc;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+        }
+        .user-item {
+            background: #1a1c2a;
+            padding: 8px 12px;
+            border-radius: 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .user-name {
+            font-weight: 500;
+            color: #e2e8f0;
+        }
+        .admin-actions button {
+            background: #2d3748;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 30px;
+            margin-left: 8px;
+            color: #f1f5f9;
+            cursor: pointer;
+            font-size: 0.7rem;
+        }
+        .delete-user-btn { background: #b91c1c; }
+        .gen-pwd-btn { background: #2b6e4f; }
+        .clear-all-btn {
+            background: #991b1b;
+            width: 100%;
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 40px;
+            font-weight: bold;
+        }
+        .add-user-area {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .add-user-area input {
+            flex: 1;
+            padding: 10px;
+            border-radius: 40px;
+            background: #1e1f2c;
+            border: none;
+            color: white;
+        }
+        small { color: #6c7293; font-size: 0.7rem; }
+        hr { border-color: #2d3040; margin: 6px 0; }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; }
+        i, .fas, .far { pointer-events: none; }
+        button { touch-action: manipulation; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: #1e1f2c; }
+        ::-webkit-scrollbar-thumb { background: #4f46e5; border-radius: 10px; }
+    </style>
 </head>
-
 <body>
-<div class="container">
-
-<!-- LOGIN -->
-<div id="loginBox">
-  <h2>Login</h2>
-  <input id="user" placeholder="Username">
-  <input id="pass" type="password" placeholder="Password">
-  <button onclick="login()">Enter</button>
+<div class="app-container" id="appRoot">
+    <!-- dynamic views will be injected -->
 </div>
 
-<!-- CHAT -->
-<div id="chatBox" class="hidden">
-  <h3 id="welcome"></h3>
+<script>
+    // ---------- FIREBASE INIT ----------
+    const firebaseConfig = {
+        apiKey: "AIzaSyCW71xwMV6DS6ggu-Q-TXX8OeKW-aWUKuY",
+        authDomain: "chatapp-1dabd.firebaseapp.com",
+        projectId: "chatapp-1dabd",
+        storageBucket: "chatapp-1dabd.firebasestorage.app",
+        messagingSenderId: "203806709864",
+        appId: "1:203806709864:web:f739450e99bcb5964043dd",
+        measurementId: "G-YE19PXXBEZ"
+    };
+    const app = firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    const analytics = firebase.analytics(app);
 
-  <div id="messages"></div>
+    // ---------- GLOBALS ----------
+    let currentUser = null;       // { username, role, isAdmin }
+    let messagesRef = null;
+    let cleanupInterval = null;
 
-  <input id="msg" placeholder="Type message...">
-  <button onclick="sendMsg()">Send</button>
-  <button onclick="logout()">Logout</button>
+    // Special hardcoded credentials (not shown on dashboard)
+    const VALID_USERS = {
+        "User27": { password: "thewayyou", role: "user" },
+        "User09": { password: "thewayyou", role: "user" },
+        "admin": { password: "180236361", role: "admin" }
+    };
 
-  <!-- ADMIN -->
-  <div id="adminPanel" class="hidden">
+    // DOM root
+    const root = document.getElementById("appRoot");
 
-    <div class="admin">
-      <button onclick="clearChat()">Clear All Messages</button>
-    </div>
-
-    <div class="admin">
-      <input id="newUser" placeholder="New Username">
-      <button onclick="addUser()">Add User</button>
-      <p id="newPass"></p>
-    </div>
-
-    <div class="admin">
-      <input id="delUser" placeholder="Delete Username">
-      <button onclick="deleteUser()">Delete User</button>
-    </div>
-
-  </div>
-</div>
-
-</div>
-
-<script type="module">
-
-// 🔥 FIREBASE IMPORTS (FIXED)
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import {
-  getFirestore,
-  collection,
-  addDoc,
-  onSnapshot,
-  query,
-  orderBy,
-  getDocs,
-  deleteDoc,
-  doc,
-  getDoc,
-  setDoc,
-  serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-// 🔥 YOUR CONFIG (CLEAN)
-const firebaseConfig = {
-  apiKey: "AIzaSyCW71xwMV6DS6ggu-Q-TXX8OeKW-aWUKuY",
-  authDomain: "chatapp-1dabd.firebaseapp.com",
-  projectId: "chatapp-1dabd",
-  storageBucket: "chatapp-1dabd.firebasestorage.app",
-  messagingSenderId: "203806709864",
-  appId: "1:203806709864:web:f739450e99bcb5964043dd"
-};
-
-// INIT
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-let currentUser = "";
-
-/* ================= LOGIN ================= */
-window.login = async function(){
-  const u = user.value.trim();
-  const p = pass.value.trim();
-
-  const ref = doc(db, "users", u);
-  const snap = await getDoc(ref);
-
-  if(snap.exists() && snap.data().password === p){
-
-    currentUser = u;
-
-    loginBox.classList.add("hidden");
-    chatBox.classList.remove("hidden");
-    welcome.innerText = "Welcome " + u;
-
-    loadMessages();
-
-    if(u === "admin"){
-      adminPanel.classList.remove("hidden");
+    // Helper: generate random password (8 chars alnum)
+    function generateRandomPassword() {
+        return Math.random().toString(36).slice(2, 10) + Math.floor(10 + Math.random() * 90);
     }
 
-  } else {
-    alert("Invalid login");
-  }
-};
+    // Helper: save users to Firebase (users node)
+    async function saveUsersToDB(usersObj) {
+        await database.ref('users_data').set(usersObj);
+    }
 
-/* ================= SEND MESSAGE ================= */
-window.sendMsg = async function(){
-  const text = msg.value.trim();
-  if(!text) return;
+    async function loadUsersFromDB() {
+        const snapshot = await database.ref('users_data').once('value');
+        const dbUsers = snapshot.val();
+        if (dbUsers && typeof dbUsers === 'object') {
+            // merge with default hardcoded? we keep hardcoded as base but also respect dynamic edits.
+            // For simplicity we store the dynamic user list separately; but we want to persist added/deleted users.
+            // We'll maintain a merged version: hardcoded + DB overrides? But requirement: admin can add/delete users.
+            // We'll store fully dynamic user list under 'users_data' excluding the hardcoded admin logic? 
+            // Safer: initially seed with default VALID_USERS if no data.
+            if (!dbUsers || Object.keys(dbUsers).length === 0) {
+                await saveUsersToDB(VALID_USERS);
+                return VALID_USERS;
+            }
+            // ensure admin always present? but admin can delete? according to spec admin can delete users, but must not delete himself? we prevent self-delete.
+            if (!dbUsers["admin"]) dbUsers["admin"] = { password: "180236361", role: "admin" };
+            return dbUsers;
+        } else {
+            await saveUsersToDB(VALID_USERS);
+            return VALID_USERS;
+        }
+    }
 
-  await addDoc(collection(db, "messages"), {
-    user: currentUser,
-    text: text,
-    time: serverTimestamp()
-  });
+    // authenticate
+    async function authenticate(username, password) {
+        const users = await loadUsersFromDB();
+        const user = users[username];
+        if (user && user.password === password) {
+            return { username, role: user.role || "user", isAdmin: user.role === "admin" };
+        }
+        return null;
+    }
 
-  msg.value = "";
-};
+    // render login view
+    function renderLogin(errorMsg = "") {
+        root.innerHTML = `
+            <div class="login-panel">
+                <div class="login-title">🌙 DarkChat</div>
+                <div class="input-group">
+                    <label>Username</label>
+                    <input type="text" id="loginUsername" placeholder="User27 / User09 / admin" autocomplete="off">
+                </div>
+                <div class="input-group">
+                    <label>Password</label>
+                    <input type="password" id="loginPassword" placeholder="••••••">
+                </div>
+                <button class="btn-primary" id="doLoginBtn">↳ Enter Chat</button>
+                <div class="error-msg" id="loginError">${errorMsg}</div>
+            </div>
+        `;
+        document.getElementById("doLoginBtn").addEventListener("click", async () => {
+            const userField = document.getElementById("loginUsername").value.trim();
+            const passField = document.getElementById("loginPassword").value.trim();
+            const auth = await authenticate(userField, passField);
+            if (auth) {
+                currentUser = auth;
+                initChatApp();
+            } else {
+                renderLogin("❌ Invalid username or password");
+            }
+        });
+        // allow enter key
+        const pwdInput = document.getElementById("loginPassword");
+        if(pwdInput) pwdInput.addEventListener("keypress", (e) => { if(e.key === "Enter") document.getElementById("doLoginBtn").click(); });
+    }
 
-/* ================= REALTIME CHAT ================= */
-function loadMessages(){
-  const q = query(collection(db, "messages"), orderBy("time","asc"));
+    // ----- MESSAGES LOGIC with auto-delete after 2 mins (from sent timestamp) -----
+    async function sendMessage(text) {
+        if (!text.trim() || !currentUser) return;
+        const newMsgRef = database.ref('chat_messages').push();
+        const now = Date.now();
+        await newMsgRef.set({
+            text: text.trim(),
+            sender: currentUser.username,
+            timestamp: now,
+            expireAt: now + 120000   // 2 minutes
+        });
+        // cleanup will be handled by periodic sweeper
+    }
 
-  onSnapshot(q, (snapshot) => {
-    messages.innerHTML = "";
+    // delete expired messages
+    async function deleteExpiredMessages() {
+        const snapshot = await database.ref('chat_messages').once('value');
+        const messages = snapshot.val();
+        if (!messages) return;
+        const now = Date.now();
+        const expired = [];
+        for (const [id, msg] of Object.entries(messages)) {
+            if (msg.expireAt && msg.expireAt <= now) {
+                expired.push(id);
+            }
+        }
+        if (expired.length) {
+            const updates = {};
+            expired.forEach(id => { updates[`chat_messages/${id}`] = null; });
+            await database.ref().update(updates);
+        }
+    }
 
-    snapshot.forEach(d => {
-      const m = d.data();
+    // admin: clear all chat data
+    async function adminClearAllChat() {
+        if (!currentUser?.isAdmin) return;
+        if (confirm("⚠️ ADMIN: Delete ALL chat messages permanently?")) {
+            await database.ref('chat_messages').remove();
+        }
+    }
 
-      const div = document.createElement("div");
-      div.className = "message";
+    // admin: add new user (with auto-generated password)
+    async function adminAddUser(username) {
+        if (!currentUser?.isAdmin) return;
+        if (!username.trim()) return;
+        const users = await loadUsersFromDB();
+        if (users[username]) { alert("User already exists!"); return; }
+        const newPassword = generateRandomPassword();
+        users[username] = { password: newPassword, role: "user" };
+        await saveUsersToDB(users);
+        alert(`✅ User "${username}" created.\nPassword: ${newPassword}\n(store it securely)`);
+        if (typeof renderAdminPanel === 'function') renderAdminPanel(); // refresh admin panel UI
+    }
 
-      const t = m.time?.seconds
-        ? new Date(m.time.seconds * 1000).toLocaleTimeString()
-        : "";
+    // admin: delete user (cannot delete admin itself)
+    async function adminDeleteUser(username) {
+        if (!currentUser?.isAdmin) return;
+        if (username === "admin") { alert("Cannot delete the main admin."); return; }
+        if (username === currentUser.username) { alert("You cannot delete yourself while logged in."); return; }
+        const users = await loadUsersFromDB();
+        if (!users[username]) return;
+        delete users[username];
+        await saveUsersToDB(users);
+        alert(`User "${username}" removed.`);
+        if (typeof renderAdminPanel === 'function') renderAdminPanel();
+    }
 
-      div.innerHTML = `
-        <b>${m.user}</b><br>
-        ${m.text}
-        <div class="small">${t}</div>
-      `;
+    // admin: generate new password for existing user
+    async function adminGenPassword(username) {
+        if (!currentUser?.isAdmin) return;
+        const users = await loadUsersFromDB();
+        if (!users[username]) { alert("User not found"); return; }
+        const newPwd = generateRandomPassword();
+        users[username].password = newPwd;
+        await saveUsersToDB(users);
+        alert(`🔑 New password for ${username}: ${newPwd}`);
+        if (typeof renderAdminPanel === 'function') renderAdminPanel();
+    }
 
-      messages.appendChild(div);
-    });
-  });
-}
+    // display messages in realtime + auto prune
+    let messageListener = null;
+    function subscribeMessages() {
+        if (messageListener) messageListener();
+        const msgsRef = database.ref('chat_messages');
+        const callback = msgsRef.on('value', (snapshot) => {
+            const msgs = snapshot.val();
+            const messagesArray = msgs ? Object.entries(msgs).map(([id, data]) => ({ id, ...data })) : [];
+            // sort by timestamp asc
+            messagesArray.sort((a,b) => (a.timestamp||0) - (b.timestamp||0));
+            renderMessages(messagesArray);
+        });
+        messageListener = () => msgsRef.off('value', callback);
+        // run cleanup every 10 sec
+        if (cleanupInterval) clearInterval(cleanupInterval);
+        cleanupInterval = setInterval(async () => {
+            await deleteExpiredMessages();
+        }, 10000);
+    }
 
-/* ================= LOGOUT ================= */
-window.logout = function(){
-  location.reload();
-};
+    function renderMessages(messagesList) {
+        const container = document.getElementById("dynamicMessages");
+        if (!container) return;
+        if (!messagesList.length) {
+            container.innerHTML = `<div style="text-align:center; color:#5b6e8c; padding: 2rem;">✨ No messages yet. Send a note!</div>`;
+            return;
+        }
+        let html = "";
+        const now = Date.now();
+        for (let msg of messagesList) {
+            // skip if expired visually but already filtered
+            const isOwn = (msg.sender === currentUser?.username);
+            const timeStr = new Date(msg.timestamp).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+            const senderDisplay = msg.sender;
+            html += `
+                <div class="message ${isOwn ? 'own' : 'other'}">
+                    <div class="msg-sender">${escapeHtml(senderDisplay)}</div>
+                    <div class="msg-text">${emojiUnescape(escapeHtml(msg.text))}</div>
+                    <div class="timestamp">${timeStr}</div>
+                </div>
+            `;
+        }
+        container.innerHTML = html;
+        container.scrollTop = container.scrollHeight;
+    }
 
-/* ================= ADMIN FUNCTIONS ================= */
-window.clearChat = async function(){
-  const snap = await getDocs(collection(db,"messages"));
-  snap.forEach(async d => {
-    await deleteDoc(doc(db,"messages",d.id));
-  });
-  alert("Chat cleared");
-};
+    function escapeHtml(str) { return str.replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+    function emojiUnescape(str) { return str; } // we just keep raw emoji unicode, fine
 
-function genPass(){
-  return Math.random().toString(36).slice(-8);
-}
+    // render full chat interface + admin drawer if admin
+    let adminPanelRendered = false;
+    async function renderChatInterface() {
+        const isAdmin = currentUser.isAdmin;
+        let usersListHtml = "";
+        if (isAdmin) {
+            const users = await loadUsersFromDB();
+            const userEntries = Object.entries(users);
+            usersListHtml = `<div class="admin-drawer" id="adminDrawer">
+                <div class="admin-title"><span>🛡️ Admin Center</span> <small>manage users</small></div>
+                <div class="user-list" id="adminUserList"></div>
+                <div class="add-user-area">
+                    <input type="text" id="newUserName" placeholder="new username" autocomplete="off">
+                    <button class="btn-primary" style="width: auto; padding: 8px 20px;" id="addUserBtn">➕ Add</button>
+                </div>
+                <button class="clear-all-btn" id="clearAllChatBtn">🗑️ CLEAR ALL CHAT DATA</button>
+                <small>⚠️ Messages vanish after 2 minutes automatically</small>
+            </div>`;
+        }
+        root.innerHTML = `
+            <div class="chat-area">
+                <div class="chat-header">
+                    <span class="brand">📱 Messenger</span>
+                    <div class="user-badge">👤 ${escapeHtml(currentUser.username)} ${currentUser.isAdmin ? '(Admin)' : ''} 
+                        <button class="logout-btn" id="logoutBtn"><i class="fas fa-sign-out-alt"></i></button>
+                    </div>
+                </div>
+                <div class="messages-container" id="dynamicMessages"></div>
+                <div class="input-row">
+                    <button class="emoji-btn" id="emojiBtn">😊</button>
+                    <input type="text" id="messageInput" placeholder="Aa..." autocomplete="off">
+                    <button class="send-btn" id="sendMsgBtn"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+            ${isAdmin ? usersListHtml : ''}
+        `;
+        // attach listeners
+        document.getElementById("sendMsgBtn").addEventListener("click", () => { sendMessageFromInput(); });
+        document.getElementById("messageInput").addEventListener("keypress", (e) => { if(e.key === "Enter") sendMessageFromInput(); });
+        document.getElementById("logoutBtn").addEventListener("click", () => { logout(); });
+        if (isAdmin) {
+            await renderUserManagementPanel();
+            document.getElementById("addUserBtn").addEventListener("click", async () => {
+                const newName = document.getElementById("newUserName").value.trim();
+                if(newName) await adminAddUser(newName);
+                document.getElementById("newUserName").value = "";
+                await renderUserManagementPanel();
+            });
+            document.getElementById("clearAllChatBtn").addEventListener("click", async () => {
+                await adminClearAllChat();
+            });
+        }
+        // simple emoji picker: lightweight dropdown
+        const emojiBtn = document.getElementById("emojiBtn");
+        const msgInput = document.getElementById("messageInput");
+        emojiBtn.addEventListener("click", () => {
+            const commonEmojis = ["😀","😂","😍","🔥","👍","💬","❤️","😎","🥳","😭","✨","💀","👀","🤣","🙏"];
+            const pickerDiv = document.createElement("div");
+            pickerDiv.style.position = "absolute";
+            pickerDiv.style.bottom = "70px";
+            pickerDiv.style.left = "20px";
+            pickerDiv.style.background = "#1e1f2c";
+            pickerDiv.style.borderRadius = "32px";
+            pickerDiv.style.padding = "12px";
+            pickerDiv.style.display = "grid";
+            pickerDiv.style.gridTemplateColumns = "repeat(5,1fr)";
+            pickerDiv.style.gap = "8px";
+            pickerDiv.style.zIndex = "999";
+            pickerDiv.style.boxShadow = "0 4px 12px black";
+            commonEmojis.forEach(emoji => {
+                const btn = document.createElement("button");
+                btn.textContent = emoji;
+                btn.style.background = "#2d3040";
+                btn.style.border = "none";
+                btn.style.fontSize = "1.7rem";
+                btn.style.borderRadius = "40px";
+                btn.style.cursor = "pointer";
+                btn.style.padding = "6px";
+                btn.onclick = () => {
+                    msgInput.value += emoji;
+                    msgInput.focus();
+                    pickerDiv.remove();
+                };
+                pickerDiv.appendChild(btn);
+            });
+            document.body.appendChild(pickerDiv);
+            const removePicker = (e) => { if(!pickerDiv.contains(e.target) && e.target !== emojiBtn) pickerDiv.remove(); document.removeEventListener("click", removePicker); };
+            setTimeout(() => document.addEventListener("click", removePicker), 10);
+        });
+        subscribeMessages();
+    }
 
-window.addUser = async function(){
-  const name = newUser.value.trim();
-  if(!name) return;
+    async function renderUserManagementPanel() {
+        const users = await loadUsersFromDB();
+        const container = document.getElementById("adminUserList");
+        if(!container) return;
+        let html = "";
+        for (const [uname, data] of Object.entries(users)) {
+            html += `
+                <div class="user-item">
+                    <span class="user-name">${escapeHtml(uname)} (${data.role})</span>
+                    <div class="admin-actions">
+                        <button class="gen-pwd-btn" data-user="${escapeHtml(uname)}">🔑 Gen Pwd</button>
+                        ${uname !== "admin" && uname !== currentUser.username ? `<button class="delete-user-btn" data-user="${escapeHtml(uname)}">🗑️</button>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+        container.innerHTML = html;
+        // attach dynamic actions
+        document.querySelectorAll(".gen-pwd-btn").forEach(btn => {
+            btn.addEventListener("click", (e) => { const user = btn.getAttribute("data-user"); adminGenPassword(user); });
+        });
+        document.querySelectorAll(".delete-user-btn").forEach(btn => {
+            btn.addEventListener("click", (e) => { const user = btn.getAttribute("data-user"); adminDeleteUser(user); });
+        });
+    }
 
-  const pass = genPass();
+    async function sendMessageFromInput() {
+        const input = document.getElementById("messageInput");
+        if(input.value.trim() !== "") {
+            await sendMessage(input.value);
+            input.value = "";
+        }
+    }
 
-  await setDoc(doc(db,"users",name),{
-    password: pass
-  });
+    function logout() {
+        if (cleanupInterval) clearInterval(cleanupInterval);
+        if (messageListener) messageListener();
+        currentUser = null;
+        renderLogin();
+    }
 
-  newPass.innerText = `User: ${name} | Pass: ${pass}`;
-};
+    async function initChatApp() {
+        if (cleanupInterval) clearInterval(cleanupInterval);
+        if (messageListener) messageListener();
+        await renderChatInterface();
+        // force immediate expiry cleanup
+        await deleteExpiredMessages();
+    }
 
-window.deleteUser = async function(){
-  const name = delUser.value.trim();
-  if(!name) return;
-
-  await deleteDoc(doc(db,"users",name));
-  alert("User deleted");
-};
-
+    // start
+    (async () => {
+        await loadUsersFromDB(); // seed db if needed
+        renderLogin();
+    })();
 </script>
-
 </body>
 </html>
