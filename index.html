@@ -13,7 +13,8 @@
       where, getDocs, deleteDoc, doc, updateDoc, getDoc, setDoc, Timestamp 
     } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
     import { 
-      getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged 
+      getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, 
+      createUserWithEmailAndPassword, updateProfile 
     } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
     const firebaseConfig = {
@@ -36,11 +37,14 @@
       "User09": { email: "user09@circle.internal", password: "thewayyou", display: "User09" }
     };
     const ADMIN_EMAIL = "admin@circle.internal";
-    const ADMIN_PASSWORD = "thewayyou";  // admin access same password, but we treat separately
+    const ADMIN_PASSWORD = "thewayyou";
     const ADMIN_DISPLAY = "Admin";
 
     // Make these available globally for the app
-    window.circleApp = { db, auth, USERS, ADMIN_EMAIL, ADMIN_PASSWORD, ADMIN_DISPLAY, Timestamp };
+    window.circleApp = { 
+      db, auth, USERS, ADMIN_EMAIL, ADMIN_PASSWORD, ADMIN_DISPLAY, Timestamp,
+      signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile 
+    };
   </script>
 
   <style>
@@ -448,7 +452,10 @@
 
 <script type="module">
   (function(){
-    const { db, auth, USERS, ADMIN_EMAIL, ADMIN_PASSWORD, ADMIN_DISPLAY, Timestamp } = window.circleApp;
+    const { 
+      db, auth, USERS, ADMIN_EMAIL, ADMIN_PASSWORD, ADMIN_DISPLAY, Timestamp,
+      signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile 
+    } = window.circleApp;
 
     // ---------- DOM elements ----------
     const loginContainer = document.getElementById('loginContainer');
@@ -480,9 +487,9 @@
     });
 
     // State
-    let currentUser = null; // { uid, email, displayName, isAdmin }
+    let currentUser = null;
     let unsubscribeMessages = null;
-    let userDisplayMap = new Map(); // cache user display names (uid -> display)
+    let userDisplayMap = new Map();
 
     // Hardcoded user mapping for emails
     const userEmailMap = {
@@ -509,39 +516,38 @@
 
       // Determine email from username
       let email;
-      let isAdminAttempt = false;
       if (usernameInput === 'User27') email = 'user27@circle.internal';
       else if (usernameInput === 'User09') email = 'user09@circle.internal';
       else if (usernameInput === 'Admin' || usernameInput === 'admin') {
         email = ADMIN_EMAIL;
-        isAdminAttempt = true;
       } else {
-        loginError.textContent = 'Invalid username (User27/User09)';
+        loginError.textContent = 'Invalid username (User27/User09/Admin)';
         return;
       }
 
-      // Check password against the hardcoded (but we also use Firebase Auth)
-      // For admin / users, password must be "thewayyou"
+      // Check password against the hardcoded
       if (password !== 'thewayyou') {
         loginError.textContent = 'Incorrect password';
         return;
       }
 
       try {
-        // Sign in with Firebase Auth (if account doesn't exist, create it lazily)
+        // Sign in with Firebase Auth
         try {
           await signInWithEmailAndPassword(auth, email, password);
         } catch (err) {
           if (err.code === 'auth/user-not-found') {
-            // create account
-            const { createUserWithEmailAndPassword, updateProfile } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js");
+            // Create account
             const cred = await createUserWithEmailAndPassword(auth, email, password);
             await updateProfile(cred.user, { displayName: usernameInput });
+          } else if (err.code === 'auth/invalid-email') {
+            loginError.textContent = 'Invalid email configuration';
+            return;
           } else {
             throw err;
           }
         }
-        // after login, onAuthStateChanged will handle UI
+        // onAuthStateChanged will handle UI
       } catch (error) {
         console.error(error);
         loginError.textContent = 'Login failed: ' + error.message;
@@ -551,7 +557,6 @@
     // Auth state listener
     onAuthStateChanged(auth, async (user) => {
       if (user) {
-        // set current user info
         const email = user.email;
         let displayName = user.displayName || mapEmailToUsername(email);
         const isAdmin = (email === ADMIN_EMAIL);
@@ -563,13 +568,16 @@
           isAdmin: isAdmin
         };
         
-        // ensure displayName in firestore user doc (for admin rename later)
+        // Ensure user doc exists
         const userDocRef = doc(db, 'users', user.uid);
         const userSnap = await getDoc(userDocRef);
         if (!userSnap.exists()) {
-          await setDoc(userDocRef, { displayName: displayName, email: email, updatedAt: serverTimestamp() });
+          await setDoc(userDocRef, { 
+            displayName: displayName, 
+            email: email, 
+            updatedAt: serverTimestamp() 
+          });
         } else {
-          // sync display name from firestore if exists
           const data = userSnap.data();
           if (data.displayName) displayName = data.displayName;
         }
@@ -582,12 +590,9 @@
         loginContainer.style.display = 'none';
         chatContainer.style.display = 'flex';
         
-        // load messages
         loadMessages();
-        // start cleanup interval
         startMessageCleanup();
       } else {
-        // logged out
         currentUser = null;
         loginContainer.style.display = 'flex';
         chatContainer.style.display = 'none';
@@ -603,7 +608,7 @@
     // Logout
     logoutBtn.addEventListener('click', () => signOut(auth));
 
-    // ---------- Load messages with 2-min expiry logic ----------
+    // ---------- Load messages with 2-min expiry ----------
     function loadMessages() {
       if (unsubscribeMessages) unsubscribeMessages();
       
@@ -611,7 +616,6 @@
       const q = query(messagesRef, orderBy('createdAt', 'asc'));
       
       unsubscribeMessages = onSnapshot(q, async (snapshot) => {
-        // fetch user display names concurrently
         const userFetchPromises = [];
         snapshot.docs.forEach(doc => {
           const data = doc.data();
@@ -642,7 +646,7 @@
         return createdAt && createdAt.seconds > twoMinutesAgo.seconds;
       });
 
-      // delete old messages from firestore in background
+      // Delete old messages
       docs.forEach(doc => {
         const data = doc.data();
         if (data.createdAt && data.createdAt.seconds <= twoMinutesAgo.seconds) {
@@ -708,7 +712,7 @@
       }
     });
 
-    // Cleanup interval every 30 seconds
+    // Cleanup interval
     function startMessageCleanup() {
       setInterval(async () => {
         if (!currentUser) return;
@@ -736,27 +740,24 @@
       if (target !== 'User27' && target !== 'User09') { alert('Target must be User27 or User09'); return; }
       
       try {
-        // find user doc by email
         const email = target === 'User27' ? 'user27@circle.internal' : 'user09@circle.internal';
         const usersRef = collection(db, 'users');
         const q = query(usersRef, where('email', '==', email));
         const snap = await getDocs(q);
         if (snap.empty) {
-          alert('User not found in database yet. Ask them to login first.');
+          alert('User not found. Ask them to login first.');
           return;
         }
         const userDoc = snap.docs[0];
         await updateDoc(userDoc.ref, { displayName: newName });
-        // update auth profile if possible (optional)
         userDisplayMap.set(userDoc.id, newName);
         alert(`Username updated to ${newName}`);
         adminNewDisplay.value = '';
-        // If this user is current, update header
         if (currentUser.email === email) {
           currentUser.displayName = newName;
           currentUserDisplay.textContent = newName;
         }
-        loadMessages(); // refresh
+        loadMessages();
       } catch(e) { alert('Error: '+e.message); }
     });
 
@@ -765,25 +766,16 @@
       if (!currentUser?.isAdmin) return;
       const newPass = adminNewPassword.value.trim();
       if (!newPass || newPass.length < 6) { alert('Password min 6 chars'); return; }
-      // Since password reset via Admin SDK not available, we'll update in Firestore and inform.
-      // But we can't actually change Firebase Auth password without SDK. We'll store a note.
-      // For simplicity, we store in a config doc and inform.
+      
       await setDoc(doc(db, 'config', 'passwords'), { 
         defaultPassword: newPass, 
         updatedBy: currentUser.uid,
         updatedAt: serverTimestamp()
       }, { merge: true });
-      alert(`Password updated in config. Instruct users: new password is "${newPass}" (also update login logic).`);
+      alert(`Password updated. Instruct users: new password is "${newPass}"`);
       adminNewPassword.value = '';
     });
 
-    // Additional: on login we used hardcoded "thewayyou". For new password, we'd need to adapt, 
-    // but for demo, admin can inform. We also handle account creation with thewayyou.
-    // Let's also make sure the hardcoded check adapts: For simplicity, keep 'thewayyou' but admin can reset in config.
-    // We'll add a small override: check config on login (optional)
-    // For now, stays as is.
-
-    // Hide admin modal when clicking outside handled
     window.addEventListener('keydown', (e) => { if (e.key === 'Escape') adminModal.style.display = 'none'; });
 
     console.log('Circle Chat ready — private, auto-delete 2min, dark mode.');
