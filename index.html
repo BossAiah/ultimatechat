@@ -4,16 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <title>Hilom · Private Chat</title>
-    <!-- Firebase SDKs (modular) -->
-    <script type="importmap">
-        {
-            "imports": {
-                "firebase/app": "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js",
-                "firebase/firestore": "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js",
-                "firebase/analytics": "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js"
-            }
-        }
-    </script>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <!-- Emoji Picker (lightweight) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -23,287 +19,293 @@
 
         body {
             background-color: #000000;
-            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            height: 100vh;
-            width: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             display: flex;
-            align-items: center;
             justify-content: center;
-            overflow: hidden;
-            touch-action: pan-y; /* smooth scrolling on phone */
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
         }
 
-        /* main app container - phone-like frame */
-        .phone-app {
+        /* Phone-like container */
+        #app {
             width: 100%;
             max-width: 500px;
-            height: 100%;
-            max-height: 780px;
-            background-color: #0c0c0c;
+            height: 100vh;
+            background-color: #0f0f0f;
             display: flex;
             flex-direction: column;
-            border-radius: 0px;   /* squarish edge as requested */
-            box-shadow: none;
-            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
             position: relative;
-            border: 1px solid #2a2a2a;
+            border-radius: 0;
+            overflow: hidden;
         }
 
-        /* header: minimal, dark, squarish */
-        .chat-header {
-            background-color: #111111;
-            padding: 16px 20px;
+        /* squarish edges but phone friendly */
+        .chat-header, .auth-header, .admin-header {
+            background-color: #1a1a1a;
+            padding: 16px 18px;
             border-bottom: 1px solid #2c2c2c;
             display: flex;
-            align-items: baseline;
             justify-content: space-between;
-            flex-shrink: 0;
+            align-items: center;
+            color: white;
         }
-        .title {
-            font-size: 1.7rem;
+
+        .chat-header h2, .auth-header h2 {
+            font-size: 1.5rem;
             font-weight: 600;
             letter-spacing: -0.3px;
-            color: white;
-        }
-        .badge {
-            font-size: 0.7rem;
-            color: #aaa;
-            background: #1e1e1e;
-            padding: 4px 8px;
-            border-radius: 20px;
-            font-family: monospace;
         }
 
-        /* chat messages area — scrollable, white text */
-        .messages-container {
-            flex: 1;
-            overflow-y: auto;
-            padding: 16px 12px;
+        .active-users-panel {
+            background-color: #121212;
+            padding: 10px 16px;
+            border-bottom: 1px solid #2a2a2a;
+            overflow-x: auto;
+            white-space: nowrap;
             display: flex;
-            flex-direction: column;
             gap: 12px;
-            background-color: #0c0c0c;
-            scroll-behavior: smooth;
+            font-size: 0.85rem;
+            color: #ccc;
         }
 
-        /* individual message bubble style — squarish edges, phone-style */
-        .message {
-            display: flex;
-            flex-direction: column;
-            max-width: 85%;
-            animation: fadeIn 0.2s ease;
-        }
-        .message.sent {
-            align-self: flex-end;
-        }
-        .message.received {
-            align-self: flex-start;
-        }
-        .bubble {
-            padding: 10px 14px;
-            border-radius: 16px;
-            font-size: 0.95rem;
-            line-height: 1.4;
-            word-wrap: break-word;
-            background-color: #1f2a2f;
-            color: white;
-            border: none;
-        }
-        .sent .bubble {
-            background-color: #0a4b6e;
-            color: white;
-            border-bottom-right-radius: 4px;
-        }
-        .received .bubble {
-            background-color: #232323;
-            color: white;
-            border-bottom-left-radius: 4px;
-        }
-        .message-meta {
-            font-size: 0.65rem;
-            color: #9e9e9e;
-            margin-top: 4px;
-            margin-left: 8px;
-            margin-right: 8px;
-            display: flex;
-            gap: 8px;
-        }
-        .sender-name {
-            font-weight: 500;
-            color: #c0c0c0;
-        }
-        .timestamp {
-            font-family: monospace;
+        .user-chip {
+            background: #1f1f1f;
+            padding: 5px 12px;
+            border-radius: 40px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: 0.1s;
+            color: #eee;
         }
 
-        /* typing indicator */
-        .typing-indicator {
-            font-size: 0.75rem;
-            color: #aaa;
-            padding: 6px 12px;
-            background: #1a1a1a;
-            border-radius: 24px;
-            width: fit-content;
-            margin: 4px 0;
+        .user-chip.active {
+            background: #2c2c2c;
+            border-left: 2px solid #3b82f6;
+        }
+
+        .online-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #22c55e;
+            border-radius: 50%;
             display: inline-block;
         }
 
-        /* input area — fixed bottom, squarish */
-        .input-area {
-            background-color: #111111;
+        .away-dot {
+            background-color: #6b7280;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background-color: #0a0a0a;
+        }
+
+        .message-bubble {
+            max-width: 85%;
+            padding: 10px 14px;
+            border-radius: 18px;
+            font-size: 0.95rem;
+            word-wrap: break-word;
+            background-color: #1f2a3a;
+            color: white;
+            align-self: flex-start;
+            border: none;
+        }
+
+        .message-bubble.own {
+            background-color: #0e4a6b;
+            align-self: flex-end;
+        }
+
+        .message-meta {
+            font-size: 0.7rem;
+            color: #aaa;
+            margin-bottom: 4px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .typing-indicator {
+            font-size: 0.75rem;
+            color: #9ca3af;
+            padding: 6px 16px;
+            font-style: italic;
+        }
+
+        .chat-input-area {
+            background-color: #111;
             border-top: 1px solid #2a2a2a;
             padding: 12px 16px;
             display: flex;
             gap: 10px;
             align-items: center;
-            flex-shrink: 0;
         }
-        .input-area input {
+
+        .chat-input-area input {
             flex: 1;
             background: #1e1e1e;
-            border: 1px solid #333;
+            border: none;
             padding: 12px 14px;
             border-radius: 28px;
+            color: white;
             font-size: 1rem;
-            color: white;
             outline: none;
-            font-family: inherit;
-        }
-        .input-area input:focus {
-            border-color: #2c7da0;
-        }
-        .input-area input::placeholder {
-            color: #6c6c6c;
-        }
-        .input-area button {
-            background-color: #2c7da0;
-            border: none;
-            padding: 10px 18px;
-            border-radius: 32px;
-            font-weight: 600;
-            color: white;
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .input-area button:active {
-            background-color: #1f5e7a;
-            transform: scale(0.96);
         }
 
-        /* auth modal (overlay) — no hints of username/password visible inside dashboard */
-        .auth-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.92);
-            backdrop-filter: blur(10px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            font-family: inherit;
-        }
-        .auth-card {
-            background: #121212;
-            width: 85%;
-            max-width: 340px;
-            border-radius: 24px;
-            padding: 28px 22px;
-            border: 1px solid #2c2c2c;
-            text-align: center;
-            box-shadow: 0 20px 35px rgba(0,0,0,0.5);
-        }
-        .auth-card h2 {
-            color: white;
-            margin-bottom: 24px;
-            font-weight: 500;
-            letter-spacing: -0.2px;
-        }
-        .auth-card input {
-            width: 100%;
-            background: #1e1e1e;
-            border: 1px solid #333;
-            padding: 14px 16px;
-            border-radius: 28px;
-            margin-bottom: 20px;
-            font-size: 1rem;
-            color: white;
-            outline: none;
-        }
-        .auth-card input:focus {
-            border-color: #2c7da0;
-        }
-        .auth-card button {
-            background: #2c7da0;
-            width: 100%;
-            padding: 12px;
+        .chat-input-area button {
+            background: #2c3e50;
             border: none;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+
+        .emoji-btn {
+            background: #1e1e1e;
+            padding: 8px 12px;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        .auth-container, .admin-dashboard {
+            background: #0f0f0f;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            flex: 1;
+            justify-content: center;
+        }
+
+        .auth-card {
+            background: #1a1a1a;
+            border-radius: 28px;
+            padding: 28px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .auth-card input {
+            background: #2a2a2a;
+            border: none;
+            padding: 14px 18px;
+            border-radius: 30px;
+            color: white;
+            font-size: 1rem;
+        }
+
+        .auth-card button {
+            background: #2563eb;
+            padding: 12px;
             border-radius: 40px;
             font-weight: bold;
-            font-size: 1rem;
+            border: none;
             color: white;
-            cursor: pointer;
-        }
-        .error-msg {
-            color: #ff8a7a;
-            font-size: 0.8rem;
-            margin-top: 12px;
-        }
-        .admin-badge {
-            background: #222;
-            padding: 4px 8px;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            color: #bbb;
-        }
-        /* hide any visible password/username hints */
-        .hidden-hint {
-            display: none;
-        }
-        /* simple scrollbar */
-        .messages-container::-webkit-scrollbar {
-            width: 4px;
-        }
-        .messages-container::-webkit-scrollbar-track {
-            background: #1a1a1a;
-        }
-        .messages-container::-webkit-scrollbar-thumb {
-            background: #444;
-            border-radius: 10px;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(6px);}
-            to { opacity: 1; transform: translateY(0);}
+        .switch-auth {
+            text-align: center;
+            color: #6b7280;
+            font-size: 0.85rem;
+        }
+
+        .switch-auth span {
+            color: #3b82f6;
+            cursor: pointer;
+        }
+
+        .admin-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .admin-btn {
+            background: #2d3748;
+            padding: 8px 14px;
+            border-radius: 30px;
+            border: none;
+            color: white;
+            font-size: 0.8rem;
+        }
+
+        .danger-btn {
+            background: #991b1b;
+        }
+
+        .warning-btn {
+            background: #b45309;
+        }
+
+        .user-list {
+            background: #171717;
+            border-radius: 20px;
+            padding: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .user-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            border-bottom: 1px solid #2c2c2c;
+            color: white;
+        }
+
+        .footer-note {
+            font-size: 0.7rem;
+            text-align: center;
+            color: #4b5563;
+            padding: 8px;
+        }
+
+        /* Hide default hints */
+        input::placeholder {
+            color: #6b7280;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        i, .fa, .fas {
+            pointer-events: none;
+        }
+
+        button i {
+            pointer-events: none;
+        }
+
+        .back-chat {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.2rem;
         }
     </style>
 </head>
 <body>
+<div id="app"></div>
 
-<div id="appRoot" class="phone-app">
-    <div class="chat-header">
-        <span class="title">Hilom</span>
-        <span class="badge" id="userDisplayBadge">—</span>
-    </div>
-    <div class="messages-container" id="messageList">
-        <!-- dynamic messages appear here -->
-        <div style="text-align:center; color:#555; padding:20px;">connecting to secure channel...</div>
-    </div>
-    <div class="input-area" id="inputArea">
-        <input type="text" id="messageInput" placeholder="Message" autocomplete="off">
-        <button id="sendBtn">Send</button>
-    </div>
-</div>
-
-<script type="module">
-    import { initializeApp } from "firebase/app";
-    import { getFirestore, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, getDoc, setDoc, limit } from "firebase/firestore";
-    import { getAnalytics } from "firebase/analytics";
-
-    // Firebase configuration (provided)
+<script>
+    // Firebase config (provided)
     const firebaseConfig = {
         apiKey: "AIzaSyCW71xwMV6DS6ggu-Q-TXX8OeKW-aWUKuY",
         authDomain: "chatapp-1dabd.firebaseapp.com",
@@ -314,332 +316,472 @@
         measurementId: "G-YE19PXXBEZ"
     };
 
-    // Init Firebase
-    const app = initializeApp(firebaseConfig);
-    const analytics = getAnalytics(app);
-    const db = getFirestore(app);
-    
-    // Collections: messages, typing status (optional but clean), also user presence
-    const messagesRef = collection(db, "chatMessages");
-    const qMessages = query(messagesRef, orderBy("timestamp", "asc"), limit(200));
-    
-    // Typing status (simple doc for each user, but we handle optionally)
-    // For simplicity, we track "typing" via a Firestore doc: typingStatus/{userId}
-    
-    // Define allowed users (only two users + admin)
-    // Two users: User27 and User09  (case-sensitive exactly)
-    // password: "thewayyou"
-    const VALID_CREDENTIALS = {
-        "User27": "thewayyou",
-        "User09": "thewayyou"
-    };
-    // Admin access: username "admin" password "181818"
-    const ADMIN_CRED = { username: "admin", password: "181818" };
-    
-    // Global state
-    let currentUser = null;      // stores { username, isAdmin }
-    let messagesUnsubscribe = null;
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // Enable Firestore persistence so user stays logged in after refresh
+    db.enablePersistence({ synchronizeTabs: true }).catch(err => { if (err.code == 'failed-precondition') console.warn(err); });
+
+    // Helper: default users (pre-created)
+    const DEFAULT_USERS = [
+        { username: "User27", password: "thewayyou" },
+        { username: "User09", password: "thewayyou" }
+    ];
+
+    // Helper to seed default users if not exist (Firestore 'users' collection)
+    async function seedDefaultUsers() {
+        const usersRef = db.collection("users");
+        for (let u of DEFAULT_USERS) {
+            const snapshot = await usersRef.where("username", "==", u.username).get();
+            if (snapshot.empty) {
+                // store hashed-like (plain for simplicity but demo, but for functionality we store raw? safer store plain but it's local demo)
+                await usersRef.doc(u.username).set({
+                    username: u.username,
+                    password: u.password,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    isAdmin: false
+                });
+            } else {
+                // ensure password matches in case update
+                const doc = snapshot.docs[0];
+                await doc.ref.update({ password: u.password });
+            }
+        }
+        // Admin account
+        const adminSnap = await usersRef.where("username", "==", "admin").get();
+        if (adminSnap.empty) {
+            await usersRef.doc("admin").set({
+                username: "admin",
+                password: "181818",
+                isAdmin: true,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        } else {
+            await adminSnap.docs[0].ref.update({ password: "181818", isAdmin: true });
+        }
+    }
+    seedDefaultUsers();
+
+    // ---------- Global State ----------
+    let currentUser = null;          // { username, isAdmin }
+    let currentChatPartner = null;   // username of the person we chat with
+    let unsubscribeMessages = null;
     let typingTimeout = null;
-    let currentTypingRef = null;
-    
-    // DOM elements
-    const messageContainer = document.getElementById("messageList");
-    const messageInput = document.getElementById("messageInput");
-    const sendBtn = document.getElementById("sendBtn");
-    const userDisplayBadge = document.getElementById("userDisplayBadge");
-    const inputAreaDiv = document.getElementById("inputArea");
-    
-    // Helper: format time
-    function formatTime(date) {
-        if (!date) return "";
-        const d = date.toDate ? date.toDate() : new Date(date);
-        return d.toLocaleTimeString([], { hour: '2-digit', minute:'2-digit' });
-    }
-    
-    // render messages in realtime
-    function renderMessages(messages) {
-        if (!messageContainer) return;
-        if (messages.length === 0) {
-            messageContainer.innerHTML = `<div style="text-align:center; color:#6a6a6a; padding:32px 16px;">✨ No messages yet. Start the whisper. ✨</div>`;
-            return;
-        }
-        let html = '';
-        for (let msg of messages) {
-            const isOwn = (currentUser && msg.sender === currentUser.username);
-            const senderClass = isOwn ? 'sent' : 'received';
-            const displayName = msg.sender;
-            const timeStr = msg.timestamp ? formatTime(msg.timestamp) : '';
-            const messageText = msg.text || '';
-            html += `
-                <div class="message ${senderClass}">
-                    <div class="bubble">${escapeHtml(messageText)}</div>
-                    <div class="message-meta">
-                        <span class="sender-name">${escapeHtml(displayName)}</span>
-                        <span class="timestamp">${timeStr}</span>
-                    </div>
+    let typingListenerUnsub = null;
+
+    // DOM root
+    const appDiv = document.getElementById("app");
+
+    // Render functions
+    function renderAuth() {
+        appDiv.innerHTML = `
+            <div class="auth-container">
+                <div class="auth-header" style="background:transparent; border:none; justify-content:center;">
+                    <h2>Hilom</h2>
                 </div>
-            `;
-        }
-        messageContainer.innerHTML = html;
-        // scroll to bottom
-        messageContainer.scrollTop = messageContainer.scrollHeight;
-    }
-    
-    // escape basic html
-    function escapeHtml(str) {
-        if (!str) return '';
-        return str.replace(/[&<>]/g, function(m) {
-            if (m === '&') return '&amp;';
-            if (m === '<') return '&lt;';
-            if (m === '>') return '&gt;';
-            return m;
-        }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
-            return c;
-        });
-    }
-    
-    // listen to firestore messages
-    function subscribeMessages() {
-        if (messagesUnsubscribe) messagesUnsubscribe();
-        messagesUnsubscribe = onSnapshot(qMessages, (snapshot) => {
-            const msgs = [];
-            snapshot.forEach(docSnap => {
-                msgs.push({ id: docSnap.id, ...docSnap.data() });
-            });
-            renderMessages(msgs);
-        }, (error) => {
-            console.error("Firestore error:", error);
-            messageContainer.innerHTML = `<div style="color:#ff8a7a; text-align:center;">⚠️ connection issue. refresh?</div>`;
-        });
-    }
-    
-    // send message function
-    async function sendMessage(text) {
-        if (!currentUser) return;
-        if (!text.trim()) return;
-        const trimmed = text.trim();
-        if (trimmed === "") return;
-        try {
-            await addDoc(messagesRef, {
-                sender: currentUser.username,
-                text: trimmed,
-                timestamp: serverTimestamp(),
-                isAdmin: currentUser.isAdmin || false
-            });
-            // clear typing indicator for this user after send
-            if (currentTypingRef) {
-                await updateDoc(currentTypingRef, { typing: false });
-            }
-        } catch (err) {
-            console.error("send error:", err);
-            alert("Message could not be sent.");
-        }
-    }
-    
-    // --- typing indicator (simple but functional) ---
-    async function setTyping(isTyping) {
-        if (!currentUser) return;
-        const typingDocId = currentUser.username;
-        const typingDocRef = doc(db, "typingStatus", typingDocId);
-        currentTypingRef = typingDocRef;
-        try {
-            const docSnap = await getDoc(typingDocRef);
-            if (!docSnap.exists()) {
-                await setDoc(typingDocRef, { username: currentUser.username, typing: isTyping, updated: serverTimestamp() });
-            } else {
-                await updateDoc(typingDocRef, { typing: isTyping, updated: serverTimestamp() });
-            }
-        } catch(e) { /* ignore */ }
-    }
-    
-    function handleTypingStart() {
-        if (!currentUser) return;
-        setTyping(true);
-        if (typingTimeout) clearTimeout(typingTimeout);
-        typingTimeout = setTimeout(() => {
-            setTyping(false);
-        }, 1500);
-    }
-    
-    // listen for other users typing (simple subscription)
-    let typingUnsub = null;
-    function subscribeTypingIndicator() {
-        if (typingUnsub) typingUnsub();
-        const typingCol = collection(db, "typingStatus");
-        const qTyping = query(typingCol);
-        typingUnsub = onSnapshot(qTyping, (snapshot) => {
-            if (!currentUser) return;
-            let typingUsers = [];
-            snapshot.forEach(docSnap => {
-                const data = docSnap.data();
-                if (data.username !== currentUser.username && data.typing === true) {
-                    typingUsers.push(data.username);
-                }
-            });
-            // show inline indicator in messages area if anyone typing (except self)
-            const existingIndicator = document.getElementById("dynamicTypingIndicator");
-            if (typingUsers.length > 0) {
-                const names = typingUsers.join(" and ");
-                const indicatorHtml = `<div id="dynamicTypingIndicator" class="typing-indicator">✎ ${escapeHtml(names)} is typing...</div>`;
-                if (!existingIndicator) {
-                    messageContainer.insertAdjacentHTML('beforeend', indicatorHtml);
-                } else {
-                    existingIndicator.innerText = `✎ ${names} is typing...`;
-                }
-                messageContainer.scrollTop = messageContainer.scrollHeight;
-            } else {
-                if (existingIndicator) existingIndicator.remove();
-            }
-        });
-    }
-    
-    // cleanup and logout
-    function logoutAndReset() {
-        if (messagesUnsubscribe) messagesUnsubscribe();
-        if (typingUnsub) typingUnsub();
-        if (typingTimeout) clearTimeout(typingTimeout);
-        currentUser = null;
-        if (currentTypingRef) {
-            setTyping(false).catch(()=>{});
-        }
-        showAuthScreen();
-    }
-    
-    // AUTH UI: no password/username hints displayed on dashboard, just inputs with placeholder hidden context
-    function showAuthScreen() {
-        // remove any existing overlay
-        const oldOverlay = document.getElementById("hilomAuthOverlay");
-        if (oldOverlay) oldOverlay.remove();
-        
-        const overlay = document.createElement("div");
-        overlay.id = "hilomAuthOverlay";
-        overlay.className = "auth-overlay";
-        overlay.innerHTML = `
-            <div class="auth-card">
-                <h2>⚡ Hilom ⚡</h2>
-                <input type="text" id="authUsername" placeholder="Username" autocomplete="off">
-                <input type="password" id="authPassword" placeholder="Password" autocomplete="off">
-                <button id="authSubmitBtn">Enter</button>
-                <div id="authError" class="error-msg"></div>
+                <div class="auth-card">
+                    <input type="text" id="loginUsername" placeholder="Username" autocomplete="off">
+                    <input type="password" id="loginPassword" placeholder="Password" autocomplete="off">
+                    <button id="loginBtn">Log in</button>
+                    <div class="switch-auth">No account? <span id="showSignup">Create account</span></div>
+                </div>
+                <div class="footer-note">private · end-to-end style</div>
             </div>
         `;
-        document.body.appendChild(overlay);
-        
-        const usernameInput = overlay.querySelector("#authUsername");
-        const passwordInput = overlay.querySelector("#authPassword");
-        const submitBtn = overlay.querySelector("#authSubmitBtn");
-        const errorDiv = overlay.querySelector("#authError");
-        
-        const attemptLogin = () => {
-            const username = usernameInput.value.trim();
-            const password = passwordInput.value;
-            errorDiv.innerText = "";
-            if (!username || !password) {
-                errorDiv.innerText = "Please fill both fields";
-                return;
-            }
-            // check admin
-            if (username === ADMIN_CRED.username && password === ADMIN_CRED.password) {
-                currentUser = { username: "Admin", isAdmin: true };
-                initChatAfterAuth();
-                overlay.remove();
-                return;
-            }
-            // check User27 / User09
-            if (VALID_CREDENTIALS[username] && VALID_CREDENTIALS[username] === password) {
-                currentUser = { username: username, isAdmin: false };
-                initChatAfterAuth();
-                overlay.remove();
-                return;
-            }
-            errorDiv.innerText = "Invalid credentials. Access denied.";
-        };
-        
-        submitBtn.addEventListener("click", attemptLogin);
-        const handleEnter = (e) => { if (e.key === "Enter") attemptLogin(); };
-        usernameInput.addEventListener("keypress", handleEnter);
-        passwordInput.addEventListener("keypress", handleEnter);
+        document.getElementById("loginBtn").onclick = () => handleLogin();
+        document.getElementById("showSignup").onclick = () => renderSignup();
+        const inputUser = document.getElementById("loginUsername");
+        const inputPass = document.getElementById("loginPassword");
+        const doLogin = () => handleLogin();
+        inputUser.addEventListener("keypress", (e) => e.key === "Enter" && doLogin());
+        inputPass.addEventListener("keypress", (e) => e.key === "Enter" && doLogin());
     }
-    
-    // after auth success: set up chat ui
-    function initChatAfterAuth() {
-        if (!currentUser) return;
-        // update badge
-        userDisplayBadge.innerText = `${currentUser.username}${currentUser.isAdmin ? ' ⚡' : ''}`;
-        // enable input and send
-        messageInput.disabled = false;
-        sendBtn.disabled = false;
-        messageInput.placeholder = `Message as ${currentUser.username}`;
-        // clear old messages and subscribe fresh
-        subscribeMessages();
-        subscribeTypingIndicator();
-        // attach typing listeners
-        messageInput.addEventListener("input", handleTypingStart);
-        messageInput.addEventListener("keypress", (e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                if (messageInput.value.trim()) {
-                    sendMessage(messageInput.value);
-                    messageInput.value = "";
-                    setTyping(false);
-                    if (typingTimeout) clearTimeout(typingTimeout);
+
+    async function handleLogin() {
+        const username = document.getElementById("loginUsername").value.trim();
+        const password = document.getElementById("loginPassword").value.trim();
+        if (!username || !password) return alert("Enter credentials");
+        const usersRef = db.collection("users");
+        const snapshot = await usersRef.where("username", "==", username).get();
+        if (snapshot.empty) return alert("User not found");
+        const userDoc = snapshot.docs[0];
+        const data = userDoc.data();
+        if (data.password !== password) return alert("Wrong password");
+        // Login success: store in localStorage + session
+        currentUser = { username: data.username, isAdmin: data.isAdmin || false };
+        localStorage.setItem("hilom_user", JSON.stringify({ username: currentUser.username, isAdmin: currentUser.isAdmin }));
+        // set presence online
+        await db.collection("presence").doc(currentUser.username).set({
+            username: currentUser.username,
+            lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+            online: true
+        });
+        // remove presence on disconnect
+        const presenceRef = db.collection("presence").doc(currentUser.username);
+        if (navigator.onLine) {
+            window.addEventListener("beforeunload", () => {
+                presenceRef.update({ online: false, lastSeen: firebase.firestore.FieldValue.serverTimestamp() });
+            });
+        }
+        renderMainDashboard();
+    }
+
+    async function handleSignup(username, password) {
+        if (!username || !password) return alert("Fill both fields");
+        const usersRef = db.collection("users");
+        const existing = await usersRef.where("username", "==", username).get();
+        if (!existing.empty) return alert("Username taken");
+        await usersRef.doc(username).set({
+            username: username,
+            password: password,
+            isAdmin: false,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        alert("Account created! Please login.");
+        renderAuth();
+    }
+
+    function renderSignup() {
+        appDiv.innerHTML = `
+            <div class="auth-container">
+                <div class="auth-header" style="background:transparent; border:none;">
+                    <button class="back-chat" id="backToLogin"><i class="fas fa-arrow-left"></i></button>
+                    <h2>Sign up</h2>
+                </div>
+                <div class="auth-card">
+                    <input type="text" id="signupUsername" placeholder="Username">
+                    <input type="password" id="signupPassword" placeholder="Password">
+                    <button id="signupBtn">Create Account</button>
+                </div>
+            </div>
+        `;
+        document.getElementById("signupBtn").onclick = async () => {
+            const u = document.getElementById("signupUsername").value.trim();
+            const p = document.getElementById("signupPassword").value.trim();
+            await handleSignup(u, p);
+        };
+        document.getElementById("backToLogin").onclick = () => renderAuth();
+    }
+
+    async function renderMainDashboard() {
+        if (!currentUser) {
+            renderAuth();
+            return;
+        }
+        // Update online presence heartbeat
+        const presenceHeartbeat = setInterval(async () => {
+            if (currentUser) {
+                await db.collection("presence").doc(currentUser.username).set({
+                    username: currentUser.username,
+                    lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+                    online: true
+                }, { merge: true });
+            }
+        }, 20000);
+        window.heartbeatInterval = presenceHeartbeat;
+
+        // load active users & chat UI
+        appDiv.innerHTML = `
+            <div class="chat-header">
+                <h2>Hilom</h2>
+                <div>
+                    <span style="font-size:0.8rem;">${currentUser.username}</span>
+                    <button id="logoutBtn" style="background:none; border:none; color:gray; margin-left:12px;"><i class="fas fa-sign-out-alt"></i></button>
+                    ${currentUser.isAdmin ? '<button id="adminPanelBtn" style="background:none; border:none; color:#facc15; margin-left:8px;"><i class="fas fa-user-shield"></i></button>' : ''}
+                </div>
+            </div>
+            <div id="activeUsersContainer" class="active-users-panel">Loading users...</div>
+            <div id="chatMessagesArea" class="chat-messages">
+                <div style="text-align:center; color:#6b7280;">Select a user to start chatting</div>
+            </div>
+            <div id="typingStatus" class="typing-indicator"></div>
+            <div class="chat-input-area">
+                <button id="emojiButton" class="emoji-btn"><i class="far fa-smile-wink"></i></button>
+                <input type="text" id="messageInput" placeholder="Message..." autocomplete="off">
+                <button id="sendMsgBtn"><i class="fas fa-paper-plane"></i></button>
+            </div>
+            <div class="footer-note">Messages disappear after 3 mins</div>
+        `;
+
+        document.getElementById("logoutBtn").onclick = async () => {
+            if (currentUser) await db.collection("presence").doc(currentUser.username).update({ online: false, lastSeen: firebase.firestore.FieldValue.serverTimestamp() });
+            currentUser = null;
+            localStorage.removeItem("hilom_user");
+            if (window.heartbeatInterval) clearInterval(window.heartbeatInterval);
+            if (unsubscribeMessages) unsubscribeMessages();
+            renderAuth();
+        };
+        if (currentUser.isAdmin) {
+            document.getElementById("adminPanelBtn").onclick = () => renderAdminDashboard();
+        }
+        // load active users list realtime
+        const activeContainer = document.getElementById("activeUsersContainer");
+        const presenceUnsub = db.collection("presence").onSnapshot(snapshot => {
+            const usersList = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                if (data.username !== currentUser.username) {
+                    let lastSeen = data.lastSeen?.toDate() || new Date();
+                    let activeAgo = Math.floor((new Date() - lastSeen) / 60000);
+                    let statusText = data.online ? (activeAgo < 2 ? "active now" : `${activeAgo} min ago`) : "offline";
+                    usersList.push({ username: data.username, online: data.online, lastSeen: lastSeen, statusText });
+                }
+            });
+            if (activeContainer) {
+                if (usersList.length === 0) activeContainer.innerHTML = "<span style='color:gray'>No other active users</span>";
+                else {
+                    activeContainer.innerHTML = usersList.map(u => `
+                        <div class="user-chip ${currentChatPartner === u.username ? 'active' : ''}" data-user="${u.username}">
+                            <span class="online-dot ${u.online ? '' : 'away-dot'}"></span>
+                            ${u.username} <span style="font-size:10px;">(${u.statusText})</span>
+                        </div>
+                    `).join('');
+                    document.querySelectorAll('.user-chip').forEach(el => {
+                        el.addEventListener('click', () => {
+                            const partner = el.getAttribute('data-user');
+                            startChatWith(partner);
+                        });
+                    });
                 }
             }
         });
-        sendBtn.onclick = () => {
-            if (messageInput.value.trim()) {
-                sendMessage(messageInput.value);
-                messageInput.value = "";
-                setTyping(false);
-                if (typingTimeout) clearTimeout(typingTimeout);
+
+        // initial load if any partner
+        if (currentChatPartner) {
+            startChatWith(currentChatPartner);
+        } else {
+            if (window.chatUnsub) window.chatUnsub();
+        }
+
+        window.presenceUnsub = presenceUnsub;
+        document.getElementById("sendMsgBtn").onclick = () => sendMessage();
+        document.getElementById("messageInput").addEventListener("keypress", (e) => { if (e.key === "Enter") sendMessage(); });
+        // Emoji picker simple: add emoji via prompt or basic
+        document.getElementById("emojiButton").onclick = () => {
+            const emoji = prompt("Choose emoji (copy paste or type):", "😊");
+            if (emoji) {
+                const input = document.getElementById("messageInput");
+                input.value += emoji;
             }
         };
-        // Also focus
-        messageInput.focus();
-        // ensure typing cleanup on logout?
+        // typing listener
+        if (currentChatPartner) setupTypingListener();
     }
-    
-    // on page load, first show auth (no user hints visible, all hidden)
-    // We also need to remove any default placeholder about password/username dashboard.
-    // The input fields themselves have generic placeholder "Username/Password" but no extra hints outside.
-    // Ensure we never expose default login details inside dashboard UI.
-    // disable chat input until auth
-    messageInput.disabled = true;
-    sendBtn.disabled = true;
-    messageInput.placeholder = "Authenticate first...";
-    userDisplayBadge.innerText = "offline";
-    
-    // Start auth screen
-    showAuthScreen();
-    
-    // Additional styling: make sure any potential side text is hidden
-    // Also ensure admin has same message interface, no extra privileges except view.
-    // For admin we just allow same as user (both User27/User09 can chat; admin can also send messages as "Admin").
-    // The requirement: two users only: User27 and User09 with password thewayyou. Admin separate.
-    // This respects 2 users + admin access.
-    // The chat displays messages from these users. Admin messages appear as "Admin".
-    // No password/username hints are displayed in dashboard ever.
-    
-    // On logout (optional not required but we don't implement logout button for simplicity but it's secure)
-    // but if admin wants, just refresh page. The spec requires only auth entrance.
-    // Ensure realtime accessible anywhere.
-    
-    // Add a small helper to clear any accidental visibility of credential hints.
-    // I also need to make sure that on mobile the keyboard does not break
-    window.addEventListener('touchstart', function() {
-        // just pass, ensure scrolling
-    });
-    
-    // optional: keep session but no extra localStorage storing password, secure
-    console.log("Hilom ready · private chat");
-    
-    // if network offline or firebase rules error, the auth screen remains but we don't leak.
-    // Clean unsubscribe on page reload? Already managed in logoutAndReset but page refresh re-runs.
-    window.addEventListener("beforeunload", () => {
-        if (currentUser && currentTypingRef) {
-            setTyping(false).catch(()=>{});
+
+    async function startChatWith(partnerUsername) {
+        if (!currentUser) return;
+        currentChatPartner = partnerUsername;
+        // unsubscribe old messages listener
+        if (unsubscribeMessages) unsubscribeMessages();
+        // load messages between currentUser & partner
+        const chatId = generateChatId(currentUser.username, partnerUsername);
+        const messagesRef = db.collection("chats").doc(chatId).collection("messages");
+        unsubscribeMessages = messagesRef.orderBy("timestamp", "asc").onSnapshot(snapshot => {
+            const container = document.getElementById("chatMessagesArea");
+            if (!container) return;
+            const msgs = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                msgs.push({ ...data, id: doc.id });
+            });
+            if (msgs.length === 0) {
+                container.innerHTML = `<div style="text-align:center; color:#6b7280;">Start chatting with ${partnerUsername}</div>`;
+                return;
+            }
+            container.innerHTML = msgs.map(msg => `
+                <div class="message-bubble ${msg.sender === currentUser.username ? 'own' : ''}">
+                    <div class="message-meta"><span>${msg.sender}</span><span>${new Date(msg.timestamp?.toDate()).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span></div>
+                    <div>${escapeHtml(msg.text)}</div>
+                </div>
+            `).join('');
+            container.scrollTop = container.scrollHeight;
+        });
+        setupTypingListener();
+        // update active chip highlight
+        renderMainDashboard(); // re-render to reflect active chip, but keep partner; to avoid blinking we refresh active panel only? but full render not ideal -> small update: recall but we will lose scroll? but preserve partner
+        // we quick patch: re-run active users panel reattach without full reinit
+        if (document.querySelectorAll('.user-chip')) {
+            document.querySelectorAll('.user-chip').forEach(el => {
+                if (el.getAttribute('data-user') === partnerUsername) el.classList.add('active');
+            });
         }
-    });
+    }
+
+    async function sendMessage() {
+        const input = document.getElementById("messageInput");
+        const text = input.value.trim();
+        if (!text || !currentChatPartner) return alert("Select a user to chat");
+        const chatId = generateChatId(currentUser.username, currentChatPartner);
+        const messagesRef = db.collection("chats").doc(chatId).collection("messages");
+        const newMsg = {
+            sender: currentUser.username,
+            receiver: currentChatPartner,
+            text: text,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            expireAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        await messagesRef.add(newMsg);
+        input.value = "";
+        // auto delete after 3 minutes (180000 ms)
+        const snapshot = await messagesRef.where("timestamp", "==", newMsg.timestamp).limit(1).get();
+        snapshot.forEach(doc => {
+            setTimeout(async () => {
+                const docRef = messagesRef.doc(doc.id);
+                const docSnap = await docRef.get();
+                if (docSnap.exists) await docRef.delete();
+            }, 180000);
+        });
+        // typing false after send
+        await setTypingFalse();
+    }
+
+    function setupTypingListener() {
+        if (typingListenerUnsub) typingListenerUnsub();
+        if (!currentChatPartner) return;
+        const typingRef = db.collection("typing").doc(`${currentUser.username}_${currentChatPartner}`);
+        typingListenerUnsub = typingRef.onSnapshot(doc => {
+            const data = doc.data();
+            const typingDiv = document.getElementById("typingStatus");
+            if (typingDiv && data && data.typing === true && data.user === currentChatPartner) {
+                typingDiv.innerText = `${currentChatPartner} is typing...`;
+            } else if (typingDiv) {
+                typingDiv.innerText = "";
+            }
+        });
+        // listen to input typing
+        const msgInput = document.getElementById("messageInput");
+        if (msgInput) {
+            msgInput.addEventListener("input", () => {
+                setTypingTrue();
+                if (typingTimeout) clearTimeout(typingTimeout);
+                typingTimeout = setTimeout(() => setTypingFalse(), 1500);
+            });
+        }
+    }
+
+    async function setTypingTrue() {
+        if (!currentChatPartner) return;
+        const typingRef = db.collection("typing").doc(`${currentUser.username}_${currentChatPartner}`);
+        await typingRef.set({ user: currentUser.username, typing: true, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+    }
+    async function setTypingFalse() {
+        if (!currentChatPartner) return;
+        const typingRef = db.collection("typing").doc(`${currentUser.username}_${currentChatPartner}`);
+        await typingRef.set({ user: currentUser.username, typing: false });
+    }
+
+    function generateChatId(u1, u2) {
+        return [u1, u2].sort().join("_");
+    }
+
+    // Admin dashboard (add/remove users, reset passwords, delete chats, delete account)
+    async function renderAdminDashboard() {
+        if (!currentUser?.isAdmin) return renderMainDashboard();
+        const usersSnapshot = await db.collection("users").get();
+        const allUsers = [];
+        usersSnapshot.forEach(doc => allUsers.push({ ...doc.data(), id: doc.id }));
+        appDiv.innerHTML = `
+            <div class="chat-header" style="justify-content: space-between;">
+                <button id="backToChat" class="back-chat"><i class="fas fa-arrow-left"></i></button>
+                <h2>Admin Panel</h2>
+                <div></div>
+            </div>
+            <div style="padding:16px; overflow-y:auto; flex:1;">
+                <h3 style="color:white;">Manage Users</h3>
+                <div class="admin-buttons">
+                    <button id="addUserBtn" class="admin-btn"><i class="fas fa-user-plus"></i> Add User</button>
+                    <button id="resetPassBtn" class="admin-btn warning-btn"><i class="fas fa-key"></i> Reset Password</button>
+                    <button id="deleteUserBtn" class="admin-btn danger-btn"><i class="fas fa-user-minus"></i> Remove User</button>
+                    <button id="deleteAllChatsBtn" class="admin-btn danger-btn"><i class="fas fa-trash-alt"></i> Delete All Chats</button>
+                </div>
+                <div class="user-list" id="userListAdmin">
+                    ${allUsers.map(u => `<div class="user-item"><span>${u.username} ${u.isAdmin ? '(admin)' : ''}</span><span style="font-size:0.7rem;"></span></div>`).join('')}
+                </div>
+                <div style="margin-top: 30px;">
+                    <button id="adminDeleteOwnAccount" class="admin-btn danger-btn"><i class="fas fa-user-slash"></i> Delete My Account</button>
+                </div>
+            </div>
+        `;
+        document.getElementById("backToChat").onclick = () => renderMainDashboard();
+        document.getElementById("addUserBtn").onclick = async () => {
+            const newUser = prompt("New username:");
+            const newPass = prompt("New password:");
+            if (newUser && newPass) {
+                await db.collection("users").doc(newUser).set({ username: newUser, password: newPass, isAdmin: false });
+                alert("User added");
+                renderAdminDashboard();
+            }
+        };
+        document.getElementById("resetPassBtn").onclick = async () => {
+            const username = prompt("Enter username to reset password:");
+            if (username) {
+                const newPass = prompt("New password:");
+                if (newPass) {
+                    const userRef = db.collection("users").doc(username);
+                    const doc = await userRef.get();
+                    if (doc.exists) await userRef.update({ password: newPass });
+                    else alert("User not found");
+                    alert("Password updated");
+                }
+            }
+        };
+        document.getElementById("deleteUserBtn").onclick = async () => {
+            const username = prompt("Username to delete:");
+            if (username && username !== currentUser.username) {
+                await db.collection("users").doc(username).delete();
+                await db.collection("presence").doc(username).delete();
+                alert("User removed");
+                renderAdminDashboard();
+            } else alert("Cannot delete self from this panel (use delete my account)");
+        };
+        document.getElementById("deleteAllChatsBtn").onclick = async () => {
+            if (confirm("⚠️ DELETE ALL CHAT MESSAGES? IRREVERSIBLE")) {
+                const chatsRef = db.collection("chats");
+                const snap = await chatsRef.get();
+                for (const doc of snap.docs) {
+                    const sub = await chatsRef.doc(doc.id).collection("messages").get();
+                    for (const msg of sub.docs) await msg.ref.delete();
+                    await doc.ref.delete();
+                }
+                alert("All chat data cleared.");
+            }
+        };
+        document.getElementById("adminDeleteOwnAccount").onclick = async () => {
+            if (confirm("Delete your entire account? you'll be logged out.")) {
+                await db.collection("users").doc(currentUser.username).delete();
+                await db.collection("presence").doc(currentUser.username).delete();
+                currentUser = null;
+                localStorage.removeItem("hilom_user");
+                renderAuth();
+            }
+        };
+    }
+
+    function escapeHtml(str) {
+        return str.replace(/[&<>]/g, function(m) { if (m === '&') return '&amp;'; if (m === '<') return '&lt;'; if (m === '>') return '&gt;'; return m; });
+    }
+
+    // Auto restore session after refresh (persist login)
+    (function restoreSession() {
+        const stored = localStorage.getItem("hilom_user");
+        if (stored) {
+            try {
+                const userData = JSON.parse(stored);
+                currentUser = userData;
+                // verify existence in firestore
+                db.collection("users").doc(userData.username).get().then(doc => {
+                    if (doc.exists) {
+                        currentUser.isAdmin = doc.data().isAdmin || false;
+                        renderMainDashboard();
+                    } else {
+                        localStorage.removeItem("hilom_user");
+                        renderAuth();
+                    }
+                }).catch(() => renderAuth());
+            } catch(e) { renderAuth(); }
+        } else { renderAuth(); }
+    })();
 </script>
 </body>
 </html>
