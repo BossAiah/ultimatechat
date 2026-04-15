@@ -1,7 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Circle Chat</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial;
+  background: #0d0d0d;
+  color: white;
+}
+
+#login, #chat, #admin {
+  display: none;
+  height: 100vh;
+}
+
+.center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+
+input {
+  padding: 10px;
+  margin: 5px;
+  border: none;
+  border-radius: 5px;
+}
+
+button {
+  padding: 10px;
+  margin: 5px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  background: #1f1f1f;
+  color: white;
+}
+
+#messages {
+  height: 80vh;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+.msg {
+  margin: 5px 0;
+  padding: 10px;
+  border-radius: 10px;
+  max-width: 60%;
+}
+
+.me {
+  background: #2563eb;
+  margin-left: auto;
+}
+
+.other {
+  background: #333;
+}
+
+#inputArea {
+  display: flex;
+}
+
+#inputArea input {
+  flex: 1;
+}
+
+.topbar {
+  padding: 10px;
+  background: #111;
+  display: flex;
+  justify-content: space-between;
+}
+</style>
+</head>
+
+<body>
+
+<!-- LOGIN -->
+<div id="login" class="center">
+  <h1>Circle Chat</h1>
+  <input id="username" placeholder="Username">
+  <input id="password" type="password" placeholder="Password">
+  <button onclick="login()">Login</button>
+</div>
+
+<!-- CHAT -->
+<div id="chat">
+  <div class="topbar">
+    <span id="userLabel"></span>
+    <button onclick="openAdmin()">Admin</button>
+  </div>
+
+  <div id="messages"></div>
+
+  <div id="inputArea">
+    <input id="msgInput" placeholder="Type message... 😊">
+    <button onclick="sendMsg()">Send</button>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div id="admin" class="center">
+  <h2>Admin Panel</h2>
+
+  <input id="newUser1" placeholder="User 1 name">
+  <input id="newUser2" placeholder="User 2 name">
+  <input id="newPass" placeholder="New Password">
+
+  <button onclick="saveAdmin()">Save Changes</button>
+  <button onclick="backChat()">Back</button>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
-import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBCBFQ44up8oGRleBbT7GACOLY9zZsraAc",
@@ -13,116 +132,104 @@ const firebaseConfig = {
   measurementId: "G-0SKZS9MCD1"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-
-// 🔥 KEEP EVERYTHING BELOW EXACTLY THE SAME
 const db = getFirestore(app);
+
+// DEFAULT USERS (stored locally first time)
+if (!localStorage.getItem("users")) {
+  localStorage.setItem("users", JSON.stringify({
+    u1: "User27",
+    u2: "User09",
+    pass: "thewayyou"
+  }));
+}
 
 let currentUser = "";
 
-// DEFAULT USERS (hidden)
-let users = {
-  user1: "User27",
-  user2: "User09",
-  password: "thewayyou"
-};
-
-// LOAD CUSTOM USERS
-async function loadUsers(){
-  const ref = doc(db,"config","users");
-  const snap = await getDoc(ref);
-  if(snap.exists()){
-    users = snap.data();
-  }
-}
-await loadUsers();
-
 // LOGIN
-window.login = function(){
-  const u = document.getElementById("username").value;
-  const p = document.getElementById("password").value;
+window.login = function() {
+  let u = username.value;
+  let p = password.value;
+  let data = JSON.parse(localStorage.getItem("users"));
 
-  if(p === users.password && (u === users.user1 || u === users.user2)){
+  if ((u === data.u1 || u === data.u2) && p === data.pass) {
     currentUser = u;
-    document.getElementById("login").style.display="none";
-    document.getElementById("chat").style.display="block";
+    login.style.display = "none";
+    chat.style.display = "block";
+    userLabel.innerText = u;
     loadMessages();
-  }
-  else if(u === "admin" && p === "admin123"){
-    document.getElementById("login").style.display="none";
-    document.getElementById("admin").style.display="flex";
-  }
-  else{
+  } else {
     alert("Invalid login");
   }
 }
 
 // SEND MESSAGE
-window.sendMsg = async function(){
-  const msg = document.getElementById("msg").value;
-  if(!msg) return;
+window.sendMsg = async function() {
+  if (!msgInput.value) return;
 
-  await addDoc(collection(db,"messages"),{
-    text: msg,
+  await addDoc(collection(db, "messages"), {
+    text: msgInput.value,
     user: currentUser,
     time: Date.now()
   });
 
-  document.getElementById("msg").value="";
+  msgInput.value = "";
 }
 
-// LOAD MESSAGES REALTIME
-function loadMessages(){
-  const chatBox = document.getElementById("chatBox");
+// LOAD REALTIME
+function loadMessages() {
+  const q = query(collection(db, "messages"), orderBy("time"));
 
-  onSnapshot(collection(db,"messages"),(snapshot)=>{
-    chatBox.innerHTML="";
+  onSnapshot(q, snapshot => {
+    messages.innerHTML = "";
 
-    snapshot.forEach(docSnap=>{
-      const data = docSnap.data();
+    snapshot.forEach(docSnap => {
+      let d = docSnap.data();
 
-      // AUTO DELETE AFTER 2 MIN
-      if(Date.now() - data.time > 120000){
-        deleteDoc(doc(db,"messages",docSnap.id));
+      // AUTO DELETE after 2 mins
+      if (Date.now() - d.time > 120000) {
+        deleteDoc(doc(db, "messages", docSnap.id));
         return;
       }
 
-      const div = document.createElement("div");
-      div.className = "msg " + (data.user === currentUser ? "me":"other");
-      div.innerText = data.user + ": " + data.text;
+      let div = document.createElement("div");
+      div.className = "msg " + (d.user === currentUser ? "me" : "other");
+      div.innerText = d.text;
 
-      chatBox.appendChild(div);
+      messages.appendChild(div);
     });
 
-    chatBox.scrollTop = chatBox.scrollHeight;
+    messages.scrollTop = messages.scrollHeight;
   });
 }
 
-// ADMIN UPDATE
-window.updateUsers = async function(){
-  const u1 = document.getElementById("newUser1").value;
-  const u2 = document.getElementById("newUser2").value;
-  const p = document.getElementById("newPass").value;
+// ADMIN
+window.openAdmin = function() {
+  admin.style.display = "flex";
+  chat.style.display = "none";
 
-  if(!u1 || !u2 || !p) return alert("Fill all");
+  let data = JSON.parse(localStorage.getItem("users"));
+  newUser1.value = data.u1;
+  newUser2.value = data.u2;
+}
 
-  await setDoc(doc(db,"config","users"),{
-    user1:u1,
-    user2:u2,
-    password:p
-  });
+window.backChat = function() {
+  admin.style.display = "none";
+  chat.style.display = "block";
+}
+
+window.saveAdmin = function() {
+  localStorage.setItem("users", JSON.stringify({
+    u1: newUser1.value,
+    u2: newUser2.value,
+    pass: newPass.value
+  }));
 
   alert("Updated!");
 }
 
-// LOGOUT
-window.logout = function(){
-  location.reload();
-}
-
-// START
-document.getElementById("login").style.display="flex";
-
+login.style.display = "flex";
 </script>
+
+</body>
+</html>
