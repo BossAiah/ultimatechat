@@ -1,121 +1,23 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>Circle Chat</title>
-
-<style>
-body {
-  margin:0;
-  font-family: Arial;
-  background:#0f0f0f;
-  color:white;
-}
-
-#login, #chat, #admin {
-  display:none;
-  height:100vh;
-}
-
-.center {
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  flex-direction:column;
-  height:100%;
-}
-
-input, button {
-  padding:10px;
-  margin:5px;
-  border:none;
-  border-radius:6px;
-}
-
-button {
-  background:#1f1f1f;
-  color:white;
-  cursor:pointer;
-}
-
-#chatBox {
-  height:80vh;
-  overflow-y:auto;
-  padding:10px;
-}
-
-.msg {
-  margin:5px 0;
-  padding:10px;
-  border-radius:10px;
-  max-width:60%;
-}
-
-.me {
-  background:#2563eb;
-  margin-left:auto;
-}
-
-.other {
-  background:#333;
-}
-
-#inputArea {
-  display:flex;
-  padding:10px;
-}
-
-#inputArea input {
-  flex:1;
-}
-</style>
-</head>
-
-<body>
-
-<!-- LOGIN -->
-<div id="login" class="center">
-  <h2>Circle Chat</h2>
-  <input id="username" placeholder="Username">
-  <input id="password" type="password" placeholder="Password">
-  <button onclick="login()">Login</button>
-</div>
-
-<!-- CHAT -->
-<div id="chat">
-  <div id="chatBox"></div>
-
-  <div id="inputArea">
-    <input id="msg" placeholder="Type message... 😊">
-    <button onclick="sendMsg()">Send</button>
-  </div>
-</div>
-
-<!-- ADMIN -->
-<div id="admin" class="center">
-  <h2>Admin Panel</h2>
-  <input id="newUser1" placeholder="User27 name">
-  <input id="newUser2" placeholder="User09 name">
-  <input id="newPass" placeholder="New Password">
-  <button onclick="updateUsers()">Update</button>
-  <button onclick="logout()">Back</button>
-</div>
-
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
 import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCW71xwMV6DS6ggu-Q-TXX8OeKW-aWUKuY",
-  authDomain: "chatapp-1dabd.firebaseapp.com",
-  projectId: "chatapp-1dabd",
-  storageBucket: "chatapp-1dabd.firebasestorage.app",
-  messagingSenderId: "203806709864",
-  appId: "1:203806709864:web:f739450e99bcb5964043dd",
-  measurementId: "G-YE19PXXBEZ"
+  apiKey: "AIzaSyBCBFQ44up8oGRleBbT7GACOLY9zZsraAc",
+  authDomain: "circle-chat-a2e81.firebaseapp.com",
+  projectId: "circle-chat-a2e81",
+  storageBucket: "circle-chat-a2e81.firebasestorage.app",
+  messagingSenderId: "975339459589",
+  appId: "1:975339459589:web:6f4ced5e6f38d87d91b86c",
+  measurementId: "G-0SKZS9MCD1"
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+
+// 🔥 KEEP EVERYTHING BELOW EXACTLY THE SAME
 const db = getFirestore(app);
 
 let currentUser = "";
@@ -224,5 +126,3 @@ window.logout = function(){
 document.getElementById("login").style.display="flex";
 
 </script>
-</body>
-</html>
