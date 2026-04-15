@@ -8,14 +8,12 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-    <!-- Emoji Picker (lightweight) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            user-select: none; /* avoid accidental selection on mobile */
         }
 
         body {
@@ -25,12 +23,9 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 0;
-            margin: 0;
             overflow: hidden;
         }
 
-        /* phone-only container — exactly like a chat app */
         #app {
             width: 100%;
             max-width: 500px;
@@ -38,19 +33,15 @@
             background-color: #0f0f0f;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            border-radius: 0;
             overflow: hidden;
             position: relative;
         }
 
-        /* dark theme base */
         .dark-theme {
             background: #0f0f0f;
             color: white;
         }
 
-        /* login / splash */
         .screen {
             flex: 1;
             display: flex;
@@ -73,7 +64,6 @@
             font-weight: 600;
             text-align: center;
             margin-bottom: 32px;
-            letter-spacing: -0.5px;
             color: white;
         }
 
@@ -94,14 +84,12 @@
             font-weight: 600;
             cursor: pointer;
             transition: 0.2s;
-            margin-bottom: 8px;
         }
 
         button:active { opacity: 0.8; transform: scale(0.98);}
         .secondary-btn { background: #3a3a3c; }
-        .danger-btn { background: #ff3b30; color: white; }
+        .danger-btn { background: #ff3b30; }
 
-        /* main chat dashboard */
         .chat-header {
             background: #111;
             padding: 14px 16px;
@@ -115,7 +103,6 @@
         .user-badge { display: flex; gap: 12px; align-items: center; }
         .user-badge span { font-size: 0.85rem; background: #2c2c2e; padding: 6px 12px; border-radius: 30px;}
 
-        /* two column layout (phone style: left sidebar + right chat drawer) */
         .main-layout {
             display: flex;
             flex: 1;
@@ -127,7 +114,6 @@
             width: 100%;
             background: #0a0a0a;
             overflow-y: auto;
-            transition: transform 0.2s ease;
             padding: 8px 0;
         }
 
@@ -138,7 +124,6 @@
             padding: 14px 16px;
             border-bottom: 0.5px solid #2c2c2e;
             cursor: pointer;
-            transition: background 0.1s;
         }
         .user-item:active { background: #1c1c1e; }
         .user-info { display: flex; flex-direction: column; gap: 4px; flex:1;}
@@ -147,7 +132,6 @@
         .status.online { color: #30d158; }
         .badge-admin { background: #ff9f0a; padding: 2px 8px; border-radius: 30px; font-size: 0.65rem;}
 
-        /* chat panel overlay (opens like a modal) */
         .chat-panel {
             position: absolute;
             top: 0;
@@ -237,15 +221,20 @@
             gap: 8px;
             flex-wrap: wrap;
         }
-        small { color: #aaa; }
-        .active-count { font-size: 0.75rem; background: #2c2c2e; padding: 4px 8px; border-radius: 20px;}
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
     </style>
 </head>
 <body>
-<div id="app"></div>
+<div id="app">
+    <div class="loading">Loading Hilom...</div>
+</div>
 
 <script>
-    // ---------- FIREBASE INIT ----------
+    // Firebase config
     const firebaseConfig = {
         apiKey: "AIzaSyCW71xwMV6DS6ggu-Q-TXX8OeKW-aWUKuY",
         authDomain: "chatapp-1dabd.firebaseapp.com",
@@ -255,93 +244,147 @@
         appId: "1:203806709864:web:f739450e99bcb5964043dd",
         measurementId: "G-YE19PXXBEZ"
     };
-    const appFirebase = firebase.initializeApp(firebaseConfig);
+    
+    const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const auth = firebase.auth();
-    // persistence so refresh keeps logged in
     auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
-    // ---------- GLOBALS ----------
-    let currentUser = null;       // { uid, username, isAdmin }
-    let activeChatWith = null;    // uid of other person
+    let currentUser = null;
+    let activeChatWith = null;
     let unsubscribeMessages = null;
     let typingTimeout = null;
-    let isTyping = false;
-    let currentChatRef = null;
 
-    // helper functions
+    // Helper functions
     function getTimestamp() {
         return firebase.firestore.FieldValue.serverTimestamp();
     }
 
-    // ----- USERS collection structure -----
-    // default users: User27, User09 (password: thewayyou)
-    // admin: username admin, password 181818, isAdmin:true
-    async function seedDefaultUsers() {
-        const usersRef = db.collection("users");
+    function escapeHtml(str) { 
+        if(!str) return '';
+        return String(str).replace(/[&<>]/g, function(m){
+            if(m==='&') return '&amp;'; 
+            if(m==='<') return '&lt;'; 
+            if(m==='>') return '&gt;'; 
+            return m;
+        });
+    }
+
+    // Create default users if they don't exist
+    async function createDefaultUsers() {
         const defaultUsers = [
             { username: "User27", password: "thewayyou", isAdmin: false },
             { username: "User09", password: "thewayyou", isAdmin: false },
             { username: "admin", password: "181818", isAdmin: true }
         ];
-        for (const u of defaultUsers) {
-            const snapshot = await usersRef.where("username", "==", u.username).get();
-            if (snapshot.empty) {
-                // create firebase auth user (email placeholder) and store metadata
-                const email = `${u.username}@hilom.local`;
-                try {
-                    const cred = await auth.createUserWithEmailAndPassword(email, u.password);
-                    const uid = cred.user.uid;
-                    await usersRef.doc(uid).set({
-                        username: u.username,
-                        isAdmin: u.isAdmin,
-                        createdAt: getTimestamp(),
-                        lastActive: getTimestamp(),
-                        online: true
-                    });
-                } catch(e) { if(e.code !== 'auth/email-already-in-use') console.warn(e); }
-            } else {
-                // ensure existing users have correct fields
-                snapshot.forEach(docSnap => {
-                    docSnap.ref.update({ isAdmin: u.isAdmin, username: u.username }).catch(()=>{});
-                });
+
+        for (const user of defaultUsers) {
+            try {
+                // Check if user exists in Firestore
+                const userQuery = await db.collection("users").where("username", "==", user.username).get();
+                
+                if (userQuery.empty) {
+                    // User doesn't exist - create them
+                    const email = `${user.username}@hilom.local`;
+                    try {
+                        // Try to create auth user
+                        const userCred = await auth.createUserWithEmailAndPassword(email, user.password);
+                        const uid = userCred.user.uid;
+                        
+                        // Store in Firestore
+                        await db.collection("users").doc(uid).set({
+                            username: user.username,
+                            isAdmin: user.isAdmin,
+                            createdAt: getTimestamp(),
+                            lastActive: getTimestamp(),
+                            online: false
+                        });
+                        console.log(`Created user: ${user.username}`);
+                    } catch (authError) {
+                        if (authError.code === 'auth/email-already-in-use') {
+                            // Auth exists but Firestore doesn't - link them
+                            const signInCred = await auth.signInWithEmailAndPassword(email, user.password);
+                            const uid = signInCred.user.uid;
+                            await db.collection("users").doc(uid).set({
+                                username: user.username,
+                                isAdmin: user.isAdmin,
+                                createdAt: getTimestamp(),
+                                lastActive: getTimestamp(),
+                                online: false
+                            }, { merge: true });
+                            await auth.signOut();
+                            console.log(`Linked existing auth to Firestore: ${user.username}`);
+                        } else {
+                            console.error(`Auth error for ${user.username}:`, authError);
+                        }
+                    }
+                } else {
+                    // User exists in Firestore, ensure auth exists too
+                    const email = `${user.username}@hilom.local`;
+                    const userDoc = userQuery.docs[0];
+                    try {
+                        await auth.signInWithEmailAndPassword(email, user.password);
+                        await auth.signOut();
+                    } catch (authError) {
+                        // Auth doesn't exist - create it
+                        if (authError.code === 'auth/user-not-found') {
+                            const userCred = await auth.createUserWithEmailAndPassword(email, user.password);
+                            await db.collection("users").doc(userCred.user.uid).set({
+                                username: user.username,
+                                isAdmin: user.isAdmin,
+                                lastActive: getTimestamp()
+                            }, { merge: true });
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error(`Error creating user ${user.username}:`, error);
             }
         }
-        // additionally sync admin user from auth
-        const adminEmail = "admin@hilom.local";
-        try {
-            const sign = await auth.signInWithEmailAndPassword(adminEmail, "181818");
-            const adminUid = sign.user.uid;
-            await usersRef.doc(adminUid).set({ username: "admin", isAdmin: true, lastActive: getTimestamp(), online: true }, { merge: true });
-        } catch(e) {}
     }
 
-    // login logic
+    // Login function
     async function loginWithUsername(username, password) {
         const usersSnap = await db.collection("users").where("username", "==", username).get();
-        if (usersSnap.empty) throw new Error("User not found");
+        if (usersSnap.empty) {
+            throw new Error("User not found. Please create an account.");
+        }
+        
         const userDoc = usersSnap.docs[0];
         const userData = userDoc.data();
-        const uid = userDoc.id;
-        // because we used email as username@hilom.local for auth
         const email = `${username}@hilom.local`;
+        
         try {
-            await auth.signInWithEmailAndPassword(email, password);
-            // update online status
-            await db.collection("users").doc(uid).update({ lastActive: getTimestamp(), online: true });
-            return { uid, username: userData.username, isAdmin: userData.isAdmin || false };
+            const cred = await auth.signInWithEmailAndPassword(email, password);
+            await db.collection("users").doc(cred.user.uid).update({ 
+                lastActive: getTimestamp(), 
+                online: true 
+            });
+            return { 
+                uid: cred.user.uid, 
+                username: userData.username, 
+                isAdmin: userData.isAdmin || false 
+            };
         } catch(err) {
-            throw new Error("Invalid password");
+            if (err.code === 'auth/user-not-found') {
+                throw new Error("Invalid credentials. Please check your password or create an account.");
+            }
+            throw new Error("Login failed: " + err.message);
         }
     }
 
+    // Register new account
     async function registerNewAccount(username, password) {
-        if (username.length < 3) throw new Error("Username too short");
+        if (username.length < 3) throw new Error("Username must be at least 3 characters");
+        if (password.length < 4) throw new Error("Password must be at least 4 characters");
+        
         const existing = await db.collection("users").where("username", "==", username).get();
-        if (!existing.empty) throw new Error("Username taken");
+        if (!existing.empty) throw new Error("Username already taken");
+        
         const email = `${username}@hilom.local`;
         const cred = await auth.createUserWithEmailAndPassword(email, password);
         const uid = cred.user.uid;
+        
         await db.collection("users").doc(uid).set({
             username: username,
             isAdmin: false,
@@ -349,219 +392,105 @@
             lastActive: getTimestamp(),
             online: true
         });
+        
         return { uid, username, isAdmin: false };
     }
 
-    // delete own account
+    // Delete own account
     async function deleteMyAccount() {
         if (!currentUser) return;
-        if (confirm("Delete your account permanently? All messages will remain (orphaned).")) {
+        if (confirm("⚠️ Delete your account permanently? This action cannot be undone.")) {
             const userRef = db.collection("users").doc(currentUser.uid);
             await userRef.delete();
-            await auth.currentUser.delete();
+            if (auth.currentUser) {
+                await auth.currentUser.delete();
+            }
             logout();
         }
     }
 
     function logout() {
         if (unsubscribeMessages) unsubscribeMessages();
+        if (currentUser) {
+            db.collection("users").doc(currentUser.uid).update({ online: false }).catch(()=>{});
+        }
         auth.signOut();
         currentUser = null;
         activeChatWith = null;
         renderLogin();
     }
 
-    // active users presence: update every 30 sec, Firestore realtime listener
+    // Update presence
     function updatePresence() {
         if (!currentUser) return;
         const userRef = db.collection("users").doc(currentUser.uid);
         userRef.update({ lastActive: getTimestamp(), online: true }).catch(e=>console.warn);
+        
         const interval = setInterval(() => {
-            if (currentUser) userRef.update({ lastActive: getTimestamp(), online: true }).catch(()=>{});
-            else clearInterval(interval);
-        }, 25000);
+            if (currentUser) {
+                userRef.update({ lastActive: getTimestamp(), online: true }).catch(()=>{});
+            } else {
+                clearInterval(interval);
+            }
+        }, 20000);
+        
         window.addEventListener("beforeunload", () => {
             if(currentUser) userRef.update({ online: false }).catch(()=>{});
         });
     }
 
-    // render main dashboard (list of users)
-    async function renderDashboard() {
-        document.getElementById("app").innerHTML = `
-            <div class="dark-theme" style="display:flex; flex-direction:column; height:100%;">
-                <div class="chat-header">
-                    <h2>Hilom</h2>
-                    <div class="user-badge">
-                        <span>${escapeHtml(currentUser.username)} ${currentUser.isAdmin ? '👑' : ''}</span>
-                        <button id="logoutBtn" class="secondary-btn" style="width:auto; padding:6px 12px;">Exit</button>
-                    </div>
-                </div>
-                <div class="main-layout">
-                    <div class="users-list" id="usersListContainer">
-                        <div style="padding:16px; text-align:center;">Loading contacts...</div>
-                    </div>
-                </div>
-                ${currentUser.isAdmin ? `<div class="admin-tools" id="adminPanel"><div class="flex-row"><button id="addUserBtn">➕ Add User</button><button id="removeUserBtn">❌ Remove User</button><button id="resetPassBtn">🔐 Reset PW</button><button id="deleteAllChatsBtn">🗑️ Delete all chats</button></div></div>` : ''}
-                <div style="padding:8px; text-align:center; font-size:11px; color:#555;">tap user → private chat</div>
-            </div>
-        `;
-        if (currentUser.isAdmin) attachAdminEvents();
-        document.getElementById("logoutBtn").addEventListener("click", logout);
-        loadUserList();
-        updatePresence();
+    // Generate chat ID
+    function generateChatId(uid1, uid2) {
+        return uid1 < uid2 ? uid1 + "_" + uid2 : uid2 + "_" + uid1;
     }
 
-    function loadUserList() {
-        // realtime users list with lastActive status
-        db.collection("users").onSnapshot(snapshot => {
-            const users = [];
-            snapshot.forEach(doc => {
-                if(doc.id !== currentUser.uid) {
-                    const data = doc.data();
-                    users.push({ uid: doc.id, username: data.username, isAdmin: data.isAdmin, lastActive: data.lastActive?.toDate?.() || new Date(0), online: data.online });
-                }
-            });
-            users.sort((a,b) => (b.online?1:0) - (a.online?1:0));
-            const container = document.getElementById("usersListContainer");
-            if(!container) return;
-            if(users.length === 0) { container.innerHTML = '<div style="padding:20px;text-align:center;">No other users</div>'; return; }
-            container.innerHTML = users.map(user => {
-                let statusText = user.online ? "Online now" : "Offline";
-                if(!user.online && user.lastActive) {
-                    const minsAgo = Math.floor((Date.now() - user.lastActive) / 60000);
-                    statusText = minsAgo < 60 ? `${minsAgo} min ago` : "inactive";
-                }
-                return `
-                    <div class="user-item" data-uid="${user.uid}" data-username="${escapeHtml(user.username)}">
-                        <div class="user-info">
-                            <div class="username">${escapeHtml(user.username)} ${user.isAdmin ? '<span class="badge-admin">admin</span>' : ''}</div>
-                            <div class="status ${user.online ? 'online' : ''}">${statusText}</div>
-                        </div>
-                        <i class="fas fa-comment" style="color:#0a84ff;"></i>
-                    </div>
-                `;
-            }).join('');
-            document.querySelectorAll('.user-item').forEach(el => {
-                el.addEventListener('click', (e) => {
-                    const uid = el.dataset.uid;
-                    const uname = el.dataset.username;
-                    openChat(uid, uname);
-                });
-            });
-        });
-    }
-
-    function openChat(targetUid, targetUsername) {
-        if(activeChatWith === targetUid) return;
-        if(unsubscribeMessages) unsubscribeMessages();
-        activeChatWith = targetUid;
-        renderChatPanel(targetUid, targetUsername);
-    }
-
-    function renderChatPanel(otherUid, otherUsername) {
-        const appDiv = document.getElementById("app");
-        const panelHtml = `
-            <div class="chat-panel open" id="chatPanel">
-                <div class="chat-panel-header">
-                    <button class="back-btn" id="closeChatBtn"><i class="fas fa-arrow-left"></i></button>
-                    <div><strong>${escapeHtml(otherUsername)}</strong> <span id="chatTypingStatus" style="font-size:12px;"></span></div>
-                    <div style="flex:1"></div>
-                </div>
-                <div class="messages-area" id="messagesArea"></div>
-                <div id="typingIndicatorArea" class="typing-indicator"></div>
-                <div class="chat-input-area">
-                    <button id="emojiBtnChat" class="emoji-btn">😊</button>
-                    <input type="text" id="chatInput" placeholder="Message..." autocomplete="off">
-                    <button id="sendMsgBtn">Send</button>
-                </div>
-            </div>
-        `;
-        const originalDashboard = document.querySelector('.main-layout');
-        const adminToolsDiv = document.querySelector('.admin-tools');
-        const existingPanel = document.getElementById('chatPanel');
-        if(existingPanel) existingPanel.remove();
-        appDiv.insertAdjacentHTML('beforeend', panelHtml);
-        if(adminToolsDiv) adminToolsDiv.style.display = 'none';
-        if(originalDashboard) originalDashboard.style.opacity = '0.3';
-        document.getElementById('closeChatBtn').addEventListener('click', () => {
-            closeChatPanel();
-        });
-        const inputField = document.getElementById('chatInput');
-        document.getElementById('sendMsgBtn').addEventListener('click', () => sendMessageTo(otherUid));
-        inputField.addEventListener('keypress', (e) => { if(e.key === 'Enter') sendMessageTo(otherUid); });
-        // typing listener
-        inputField.addEventListener('input', () => handleTyping(otherUid));
-        // emoji button simple picker
-        document.getElementById('emojiBtnChat').addEventListener('click', () => {
-            const emojis = ['😀','😂','😍','🥲','😎','😢','🔥','❤️','👍','🎉'];
-            const pick = prompt("Pick emoji:\n" + emojis.join(' '), "😀");
-            if(pick && pick.trim()) inputField.value += pick;
-        });
-        subscribeToMessages(otherUid);
-        subscribeTyping(otherUid);
-    }
-
-    function closeChatPanel() {
-        if(unsubscribeMessages) unsubscribeMessages();
-        activeChatWith = null;
-        const panel = document.getElementById('chatPanel');
-        if(panel) panel.remove();
-        const mainLayout = document.querySelector('.main-layout');
-        if(mainLayout) mainLayout.style.opacity = '1';
-        const adminToolsDiv = document.querySelector('.admin-tools');
-        if(adminToolsDiv) adminToolsDiv.style.display = 'flex';
-        renderDashboard(); // reload user list for freshness but keep same dashboard core
-    }
-
+    // Send message
     async function sendMessageTo(receiverUid) {
         const input = document.getElementById('chatInput');
         const text = input.value.trim();
         if(!text || !currentUser) return;
+        
         const chatId = generateChatId(currentUser.uid, receiverUid);
         const message = {
             from: currentUser.uid,
             to: receiverUid,
             text: text,
             timestamp: getTimestamp(),
-            read: false,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            read: false
         };
-        await db.collection("chats").doc(chatId).collection("messages").add(message);
-        // schedule auto deletion after 3 minutes (only after message is read? spec: messages disappear 3 mins after they were sent by user)
-        // but requirement: "only apply 2 mins removal of message once it is read already." - but main: messages disappear 3 min after sent (data saving)
-        // implement 3 min after sent removal
+        
+        const msgRef = await db.collection("chats").doc(chatId).collection("messages").add(message);
+        
+        // Delete after 3 minutes
         setTimeout(async () => {
-            const qSnap = await db.collection("chats").doc(chatId).collection("messages").where("timestamp", ">=", new Date(Date.now() - 60000*5)).get();
-            // lazy delete only this message if still exists
-            // safer: delete the specific message reference but we don't have doc id, we add custom id later
+            try {
+                await msgRef.delete();
+            } catch(e) {}
         }, 180000);
+        
         input.value = '';
-        // actual auto-delete function will be triggered on message creation with TTL (we'll use cloud function simulation: but firestore rules don't have ttl, we manually delete after 3 min)
-        // We'll store doc and delete after 180 sec
-        const msgQuery = await db.collection("chats").doc(chatId).collection("messages").where("text","==",text).where("from","==",currentUser.uid).orderBy("timestamp","desc").limit(1).get();
-        msgQuery.forEach(docSnap => {
-            setTimeout(() => {
-                docSnap.ref.delete().catch(()=>{});
-            }, 180000);
-        });
     }
 
-    function generateChatId(uid1, uid2) {
-        return uid1 < uid2 ? uid1+"_"+uid2 : uid2+"_"+uid1;
-    }
-
-    function subscribeToMessages(otherUid) {
+    // Subscribe to messages
+    function subscribeToMessages(otherUid, otherUsername) {
         const chatId = generateChatId(currentUser.uid, otherUid);
         const messagesRef = db.collection("chats").doc(chatId).collection("messages").orderBy("timestamp", "asc");
+        
         unsubscribeMessages = messagesRef.onSnapshot(snapshot => {
             const container = document.getElementById("messagesArea");
             if(!container) return;
+            
             let html = '';
             snapshot.forEach(doc => {
                 const msg = doc.data();
                 const isMine = msg.from === currentUser.uid;
-                html += `<div class="message-bubble ${isMine ? 'my-message' : ''}">${escapeHtml(msg.text)}<div style="font-size:9px; opacity:0.6">${new Date(msg.timestamp?.toDate?.() || Date.now()).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div></div>`;
-                // mark read
+                html += `<div class="message-bubble ${isMine ? 'my-message' : ''}">
+                            ${escapeHtml(msg.text)}
+                            <div style="font-size:9px; opacity:0.6; margin-top:4px;">
+                                ${msg.timestamp?.toDate ? new Date(msg.timestamp.toDate()).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : 'Just now'}
+                            </div>
+                         </div>`;
+                
                 if(!isMine && !msg.read) {
                     doc.ref.update({ read: true }).catch(()=>{});
                 }
@@ -571,17 +500,20 @@
         });
     }
 
+    // Handle typing
     function handleTyping(otherUid) {
         if(!currentUser) return;
         const chatId = generateChatId(currentUser.uid, otherUid);
         const typingRef = db.collection("typing").doc(chatId);
         typingRef.set({ [currentUser.uid]: true, updated: getTimestamp() }, { merge: true });
+        
         if(typingTimeout) clearTimeout(typingTimeout);
         typingTimeout = setTimeout(() => {
             typingRef.update({ [currentUser.uid]: false });
         }, 1500);
     }
 
+    // Subscribe to typing
     function subscribeTyping(otherUid) {
         const chatId = generateChatId(currentUser.uid, otherUid);
         db.collection("typing").doc(chatId).onSnapshot(docSnap => {
@@ -595,57 +527,217 @@
         });
     }
 
-    // admin functions
+    // Open chat panel
+    function openChat(targetUid, targetUsername) {
+        if(activeChatWith === targetUid) return;
+        if(unsubscribeMessages) unsubscribeMessages();
+        activeChatWith = targetUid;
+        
+        const mainDiv = document.querySelector('.main-layout');
+        const adminTools = document.querySelector('.admin-tools');
+        
+        const panelHtml = `
+            <div class="chat-panel open" id="chatPanel">
+                <div class="chat-panel-header">
+                    <button class="back-btn" id="closeChatBtn"><i class="fas fa-arrow-left"></i></button>
+                    <div><strong>${escapeHtml(targetUsername)}</strong> <span id="chatTypingStatus" style="font-size:12px; margin-left:8px;"></span></div>
+                    <div style="flex:1"></div>
+                </div>
+                <div class="messages-area" id="messagesArea"></div>
+                <div class="chat-input-area">
+                    <button id="emojiBtnChat" class="emoji-btn">😊</button>
+                    <input type="text" id="chatInput" placeholder="Message..." autocomplete="off">
+                    <button id="sendMsgBtn">Send</button>
+                </div>
+            </div>
+        `;
+        
+        const existingPanel = document.getElementById('chatPanel');
+        if(existingPanel) existingPanel.remove();
+        document.getElementById("app").insertAdjacentHTML('beforeend', panelHtml);
+        if(mainDiv) mainDiv.style.opacity = '0.3';
+        if(adminTools) adminTools.style.display = 'none';
+        
+        document.getElementById('closeChatBtn').addEventListener('click', () => {
+            if(unsubscribeMessages) unsubscribeMessages();
+            activeChatWith = null;
+            const panel = document.getElementById('chatPanel');
+            if(panel) panel.remove();
+            if(mainDiv) mainDiv.style.opacity = '1';
+            if(adminTools) adminTools.style.display = 'block';
+        });
+        
+        const inputField = document.getElementById('chatInput');
+        document.getElementById('sendMsgBtn').addEventListener('click', () => sendMessageTo(targetUid));
+        inputField.addEventListener('keypress', (e) => { if(e.key === 'Enter') sendMessageTo(targetUid); });
+        inputField.addEventListener('input', () => handleTyping(targetUid));
+        
+        document.getElementById('emojiBtnChat').addEventListener('click', () => {
+            const emojis = ['😀','😂','😍','🥲','😎','😢','🔥','❤️','👍','🎉','💀','✨','⭐','🌙','🌸'];
+            const pick = prompt("Choose emoji:\n" + emojis.join(' '), "😀");
+            if(pick && pick.trim()) inputField.value += pick;
+        });
+        
+        subscribeToMessages(targetUid, targetUsername);
+        subscribeTyping(targetUid);
+    }
+
+    // Load user list
+    function loadUserList() {
+        db.collection("users").onSnapshot(snapshot => {
+            const users = [];
+            snapshot.forEach(doc => {
+                if(doc.id !== currentUser?.uid) {
+                    const data = doc.data();
+                    users.push({ 
+                        uid: doc.id, 
+                        username: data.username, 
+                        isAdmin: data.isAdmin, 
+                        lastActive: data.lastActive?.toDate?.() || new Date(0), 
+                        online: data.online 
+                    });
+                }
+            });
+            
+            users.sort((a,b) => (b.online?1:0) - (a.online?1:0));
+            const container = document.getElementById("usersListContainer");
+            if(!container) return;
+            
+            if(users.length === 0) {
+                container.innerHTML = '<div style="padding:20px;text-align:center;">No other users yet</div>';
+                return;
+            }
+            
+            container.innerHTML = users.map(user => {
+                let statusText = user.online ? "● Online now" : "○ Offline";
+                if(!user.online && user.lastActive && user.lastActive.getTime() > 0) {
+                    const minsAgo = Math.floor((Date.now() - user.lastActive) / 60000);
+                    statusText = minsAgo < 60 ? `${minsAgo} min ago` : "inactive";
+                }
+                return `
+                    <div class="user-item" data-uid="${user.uid}" data-username="${escapeHtml(user.username)}">
+                        <div class="user-info">
+                            <div class="username">${escapeHtml(user.username)} ${user.isAdmin ? '<span class="badge-admin">admin</span>' : ''}</div>
+                            <div class="status ${user.online ? 'online' : ''}">${statusText}</div>
+                        </div>
+                        <i class="fas fa-comment" style="color:#0a84ff; font-size:1.2rem;"></i>
+                    </div>
+                `;
+            }).join('');
+            
+            document.querySelectorAll('.user-item').forEach(el => {
+                el.addEventListener('click', () => {
+                    const uid = el.dataset.uid;
+                    const uname = el.dataset.username;
+                    openChat(uid, uname);
+                });
+            });
+        });
+    }
+
+    // Admin functions
     async function addUserByAdmin() {
-        const newUser = prompt("New username:");
+        const newUser = prompt("Enter new username:");
         if(!newUser) return;
-        const pass = prompt("Password for new user:");
+        const pass = prompt("Enter password:");
         if(!pass) return;
         try {
             await registerNewAccount(newUser, pass);
-            alert("User created");
-        } catch(e){ alert(e.message);}
+            alert(`User "${newUser}" created successfully!`);
+        } catch(e){ 
+            alert("Error: " + e.message);
+        }
     }
+    
     async function removeUserByAdmin() {
-        const username = prompt("Username to remove:");
+        const username = prompt("Enter username to remove:");
         const snap = await db.collection("users").where("username","==",username).get();
-        if(snap.empty){ alert("not found"); return; }
+        if(snap.empty){ alert("User not found"); return; }
         const doc = snap.docs[0];
-        const uid = doc.id;
-        const authUser = await auth.currentUser;
-        if(uid === currentUser.uid) { alert("Can't delete yourself"); return; }
-        await db.collection("users").doc(uid).delete();
-        const userAuth = await auth.fetchSignInMethodsForEmail(`${username}@hilom.local`);
-        alert("User deleted (auth cleanup requires manual admin)");
+        if(doc.id === currentUser.uid) { alert("Cannot delete yourself"); return; }
+        
+        if(confirm(`Delete user "${username}" permanently?`)) {
+            await db.collection("users").doc(doc.id).delete();
+            alert("User deleted");
+        }
     }
+    
     async function resetUserPassword() {
         const username = prompt("Username to reset password:");
         const newPass = prompt("New password:");
+        if(!newPass || newPass.length < 4) { alert("Password must be at least 4 characters"); return; }
+        
         const snap = await db.collection("users").where("username","==",username).get();
-        if(snap.empty){ alert("no user"); return; }
-        const email = `${username}@hilom.local`;
-        // In firebase, we can't easily reset via client SDK without email, but for demo we update custom claim? we re-create?
-        alert("For demo, password reset via console. But you can delete and recreate.");
+        if(snap.empty){ alert("User not found"); return; }
+        
+        alert("Password reset: Use the 'Forgot password' flow or re-create the user. For demo, delete and recreate the user.");
     }
+    
     async function deleteAllChats() {
-        if(confirm("Delete ALL private messages (irreversible)?")){
-            const collections = await db.collection("chats").get();
-            for(const doc of collections.docs){
-                const sub = await db.collection("chats").doc(doc.id).collection("messages").get();
-                sub.forEach(m => m.ref.delete());
-                await doc.ref.delete();
+        if(confirm("⚠️ DELETE ALL PRIVATE MESSAGES? This is permanent!")){
+            const chats = await db.collection("chats").get();
+            for(const chatDoc of chats.docs){
+                const messages = await db.collection("chats").doc(chatDoc.id).collection("messages").get();
+                for(const msgDoc of messages.docs){
+                    await msgDoc.ref.delete();
+                }
+                await chatDoc.ref.delete();
             }
             alert("All chats cleared");
         }
     }
+    
     function attachAdminEvents() {
         document.getElementById("addUserBtn")?.addEventListener("click", addUserByAdmin);
         document.getElementById("removeUserBtn")?.addEventListener("click", removeUserByAdmin);
         document.getElementById("resetPassBtn")?.addEventListener("click", resetUserPassword);
         document.getElementById("deleteAllChatsBtn")?.addEventListener("click", deleteAllChats);
+        document.getElementById("deleteAccountBtn")?.addEventListener("click", deleteMyAccount);
     }
 
-    // login & signup UI
+    // Render dashboard
+    async function renderDashboard() {
+        document.getElementById("app").innerHTML = `
+            <div class="dark-theme" style="display:flex; flex-direction:column; height:100%;">
+                <div class="chat-header">
+                    <h2>Hilom</h2>
+                    <div class="user-badge">
+                        <span>${escapeHtml(currentUser.username)} ${currentUser.isAdmin ? '👑' : ''}</span>
+                        <button id="logoutBtn" class="secondary-btn" style="width:auto; padding:6px 12px;">Exit</button>
+                    </div>
+                </div>
+                <div class="main-layout">
+                    <div class="users-list" id="usersListContainer">
+                        <div style="padding:16px; text-align:center;">Loading users...</div>
+                    </div>
+                </div>
+                ${currentUser.isAdmin ? `
+                <div class="admin-tools" id="adminPanel">
+                    <div class="flex-row">
+                        <button id="addUserBtn">➕ Add User</button>
+                        <button id="removeUserBtn">❌ Remove User</button>
+                        <button id="resetPassBtn">🔐 Reset PW</button>
+                        <button id="deleteAllChatsBtn">🗑️ Delete all chats</button>
+                    </div>
+                </div>` : `
+                <div class="admin-tools" style="background:#1c1c1e;">
+                    <button id="deleteAccountBtn" class="danger-btn" style="background:#ff3b30;">Delete My Account</button>
+                </div>`}
+                <div style="padding:8px; text-align:center; font-size:11px; color:#555;">tap a user → private chat</div>
+            </div>
+        `;
+        
+        document.getElementById("logoutBtn").addEventListener("click", logout);
+        if(currentUser.isAdmin) attachAdminEvents();
+        if(!currentUser.isAdmin) {
+            document.getElementById("deleteAccountBtn")?.addEventListener("click", deleteMyAccount);
+        }
+        
+        loadUserList();
+        updatePresence();
+    }
+
+    // Render login screen
     function renderLogin() {
         document.getElementById("app").innerHTML = `
             <div class="screen">
@@ -654,47 +746,68 @@
                     <input type="text" id="loginUsername" placeholder="Username" autocomplete="off">
                     <input type="password" id="loginPassword" placeholder="Password">
                     <button id="loginBtn">Log in</button>
-                    <button id="signupBtn" class="secondary-btn">Create account</button>
+                    <button id="signupBtn" class="secondary-btn">Create new account</button>
+                    <div style="text-align:center; margin-top:16px; font-size:12px; color:#666;">
+                        Default: User27 / thewayyou<br>
+                        Admin: admin / 181818
+                    </div>
                 </div>
             </div>
         `;
+        
         document.getElementById("loginBtn").onclick = async () => {
             const un = document.getElementById("loginUsername").value.trim();
             const pw = document.getElementById("loginPassword").value;
+            if(!un || !pw) { alert("Enter username and password"); return; }
             try {
                 const user = await loginWithUsername(un, pw);
                 currentUser = user;
-                renderDashboard();
-            } catch(e){ alert("Login failed: "+e.message);}
+                await renderDashboard();
+            } catch(e){ 
+                alert("❌ " + e.message);
+            }
         };
+        
         document.getElementById("signupBtn").onclick = async () => {
-            const un = prompt("Choose username:");
+            const un = prompt("Choose username (min 3 chars):");
             if(!un) return;
-            const pw = prompt("Password:");
+            const pw = prompt("Choose password (min 4 chars):");
             if(!pw) return;
             try {
                 const newUsr = await registerNewAccount(un, pw);
                 currentUser = newUsr;
-                renderDashboard();
-            } catch(e){ alert(e.message);}
+                await renderDashboard();
+            } catch(e){ 
+                alert("❌ " + e.message);
+            }
         };
     }
 
-    function escapeHtml(str) { return String(str).replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;});}
-
-    auth.onAuthStateChanged(async (user) => {
-        if(user){
-            const docSnap = await db.collection("users").doc(user.uid).get();
-            if(docSnap.exists){
-                const data = docSnap.data();
-                currentUser = { uid: user.uid, username: data.username, isAdmin: data.isAdmin || false };
-                renderDashboard();
-            } else { renderLogin(); }
-        } else {
-            await seedDefaultUsers();
-            renderLogin();
-        }
-    });
+    // Initialize app
+    async function init() {
+        await createDefaultUsers();
+        
+        auth.onAuthStateChanged(async (user) => {
+            if(user){
+                const docSnap = await db.collection("users").doc(user.uid).get();
+                if(docSnap.exists){
+                    const data = docSnap.data();
+                    currentUser = { 
+                        uid: user.uid, 
+                        username: data.username, 
+                        isAdmin: data.isAdmin || false 
+                    };
+                    renderDashboard();
+                } else {
+                    renderLogin();
+                }
+            } else {
+                renderLogin();
+            }
+        });
+    }
+    
+    init();
 </script>
 </body>
 </html>
