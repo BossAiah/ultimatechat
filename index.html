@@ -2,67 +2,128 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Circle Chat</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
-        body { background-color: #0b0e11; color: #ffffff; font-family: 'Inter', sans-serif; }
-        .chat-bubble { max-width: 80%; border-radius: 18px; padding: 10px 15px; margin-bottom: 8px; }
-        .sent { background-color: #0084ff; align-self: flex-end; border-bottom-right-radius: 4px; }
-        .received { background-color: #242526; align-self: flex-start; border-bottom-left-radius: 4px; }
+        body { 
+            background-color: #000000; 
+            color: #ffffff; 
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* Prevents body bounce on mobile */
+            height: 100vh;
+        }
+
+        /* Messenger Style Bubbles */
+        .chat-container {
+            height: calc(100vh - 130px); /* Adjust based on header/input height */
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+        }
+
+        .bubble {
+            max-width: 75%;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            font-size: 16px;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+
+        /* Sent by Me (User27 or User09) */
+        .sent {
+            background-color: #0044cc; /* Dark Blue */
+            color: #ffffff;
+            align-self: flex-end;
+            border-radius: 20px 20px 4px 20px;
+        }
+
+        /* Received */
+        .received {
+            background-color: #333333; /* Light Gray / Dark Charcoal */
+            color: #e0e0e0;
+            align-self: flex-start;
+            border-radius: 20px 20px 20px 4px;
+        }
+
+        .timestamp {
+            font-size: 10px;
+            opacity: 0.5;
+            margin-top: 4px;
+            text-align: right;
+        }
+
         .hidden { display: none; }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-thumb { background: #3a3b3c; border-radius: 10px; }
+
+        /* Smooth UI Elements */
+        input, button { outline: none !important; }
+        .input-area {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            background: #121212;
+            padding: 12px;
+            border-top: 1px solid #222;
+        }
     </style>
 </head>
-<body class="h-screen flex flex-col">
+<body>
 
-    <div id="login-screen" class="flex flex-col items-center justify-center h-full space-y-4">
-        <h1 class="text-3xl font-bold text-white mb-6">Circle Chat</h1>
-        <div class="bg-[#242526] p-8 rounded-xl shadow-xl w-80">
-            <input type="text" id="username" placeholder="Username" class="w-full p-3 mb-4 rounded bg-[#3a3b3c] border-none text-white focus:ring-2 focus:ring-blue-500">
-            <input type="password" id="password" placeholder="Key" class="w-full p-3 mb-6 rounded bg-[#3a3b3c] border-none text-white focus:ring-2 focus:ring-blue-500">
-            <button onclick="login()" class="w-full bg-blue-600 hover:bg-blue-700 p-3 rounded font-bold transition">Enter Room</button>
-            <p id="login-error" class="text-red-500 text-sm mt-4 hidden text-center">Invalid credentials.</p>
+    <div id="login-screen" class="flex items-center justify-center h-screen px-6">
+        <div class="w-full max-w-sm bg-[#111] p-8 rounded-3xl border border-gray-800">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-blue-600 rounded-full mx-auto mb-4 flex items-center justify-center">
+                    <span class="text-2xl font-bold">C</span>
+                </div>
+                <h1 class="text-2xl font-bold">Circle Chat</h1>
+            </div>
+            <input type="text" id="username" placeholder="Username" class="w-full p-4 mb-3 rounded-2xl bg-[#222] text-white border border-gray-700 focus:border-blue-500">
+            <input type="password" id="password" placeholder="Key" class="w-full p-4 mb-6 rounded-2xl bg-[#222] text-white border border-gray-700 focus:border-blue-500">
+            <button onclick="login()" class="w-full bg-blue-600 hover:bg-blue-700 py-4 rounded-2xl font-bold text-lg active:scale-95 transition">Login</button>
+            <p id="login-error" class="text-red-500 text-center mt-4 hidden">Access Denied</p>
         </div>
     </div>
 
-    <div id="chat-screen" class="hidden flex flex-col h-full">
-        <header class="p-4 border-b border-gray-800 flex justify-between items-center bg-[#1c1e21]">
-            <h2 class="font-bold text-lg text-blue-400">● Circle Chat</h2>
-            <div class="flex gap-4">
-                <button onclick="showAdmin()" class="text-xs text-gray-500 hover:text-white">Admin</button>
-                <button onclick="location.reload()" class="text-xs text-red-500">Logout</button>
+    <div id="chat-screen" class="hidden flex flex-col h-screen">
+        <header class="p-4 bg-[#111] border-b border-gray-800 flex justify-between items-center sticky top-0 z-10">
+            <div>
+                <h2 class="font-bold text-blue-500">Circle Chat</h2>
+                <p id="user-status" class="text-xs text-green-500 font-medium">● Online</p>
             </div>
+            <button onclick="showAdmin()" class="text-xs bg-gray-800 px-3 py-1 rounded-full text-gray-400">Settings</button>
         </header>
 
-        <div id="messages" class="flex-1 overflow-y-auto p-4 flex flex-col"></div>
-
-        <div class="p-4 bg-[#1c1e21] border-t border-gray-800">
-            <div class="flex gap-2">
-                <input type="text" id="msg-input" placeholder="Type a message..." class="flex-1 p-3 rounded-full bg-[#3a3b3c] border-none text-white focus:outline-none">
-                <button onclick="sendMessage()" class="bg-blue-600 p-3 rounded-full px-6 hover:bg-blue-700 transition">Send</button>
+        <div id="messages" class="chat-container">
             </div>
+
+        <div class="input-area flex gap-2 items-center">
+            <input type="text" id="msg-input" placeholder="Message..." class="flex-1 p-3 px-5 rounded-full bg-[#222] text-white border-none text-base">
+            <button onclick="sendMessage()" class="bg-blue-600 w-12 h-12 rounded-full flex items-center justify-center active:scale-90 transition">
+                <svg viewBox="0 0 24 24" class="w-6 h-6 fill-white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+            </button>
         </div>
     </div>
 
-    <div id="admin-modal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center p-4">
-        <div class="bg-[#242526] p-6 rounded-xl w-full max-w-md">
-            <h3 class="text-xl font-bold mb-4">Admin Control</h3>
-            <label class="text-sm text-gray-400">Target User (0 or 1)</label>
-            <input type="number" id="admin-user-idx" class="w-full p-2 mb-4 rounded bg-[#3a3b3c] text-white" placeholder="0 or 1">
-            <input type="text" id="new-username" class="w-full p-2 mb-4 rounded bg-[#3a3b3c] text-white" placeholder="New Username">
-            <input type="text" id="new-pass" class="w-full p-2 mb-4 rounded bg-[#3a3b3c] text-white" placeholder="New Password">
-            <div class="flex gap-2">
-                <button onclick="applyAdminChanges()" class="flex-1 bg-green-600 p-2 rounded">Save</button>
-                <button onclick="hideAdmin()" class="flex-1 bg-gray-600 p-2 rounded">Close</button>
-            </div>
+    <div id="admin-modal" class="hidden fixed inset-0 bg-black/90 flex items-center justify-center p-6 z-50">
+        <div class="bg-[#111] p-6 rounded-3xl w-full max-w-xs border border-gray-800">
+            <h3 class="font-bold mb-4">Admin Controls</h3>
+            <input type="number" id="admin-user-idx" class="w-full p-3 mb-2 rounded-xl bg-[#222]" placeholder="User Index (0 or 1)">
+            <input type="text" id="new-username" class="w-full p-3 mb-2 rounded-xl bg-[#222]" placeholder="New Name">
+            <input type="text" id="new-pass" class="w-full p-3 mb-4 rounded-xl bg-[#222]" placeholder="New Password">
+            <button onclick="applyAdminChanges()" class="w-full bg-green-600 p-3 rounded-xl mb-2 font-bold">Apply</button>
+            <button onclick="hideAdmin()" class="w-full bg-gray-700 p-3 rounded-xl font-bold">Cancel</button>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, push, onValue, serverTimestamp, remove, query, orderByChild, onChildAdded } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, push, onChildAdded, remove, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBCBFQ44up8oGRleBbT7GACOLY9zZsraAc",
@@ -70,22 +131,19 @@
             projectId: "circle-chat-a2e81",
             storageBucket: "circle-chat-a2e81.firebasestorage.app",
             messagingSenderId: "975339459589",
-            appId: "1:975339459589:web:6f4ced5e6f38d87d91b86c",
-            measurementId: "G-0SKZS9MCD1"
+            appId: "1:975339459589:web:6f4ced5e6f38d87d91b86c"
         };
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
-        const chatRef = ref(db, 'messages');
+        const chatRef = ref(db, 'chat_room');
 
-        // Local State
-        let currentUser = null;
+        let currentUser = "";
         let users = [
             { name: "User27", pass: "thewayyou" },
             { name: "User 09", pass: "thewayyou" }
         ];
 
-        // Login Logic
         window.login = () => {
             const u = document.getElementById('username').value;
             const p = document.getElementById('password').value;
@@ -95,77 +153,79 @@
                 currentUser = found.name;
                 document.getElementById('login-screen').classList.add('hidden');
                 document.getElementById('chat-screen').classList.remove('hidden');
-                initChat();
+                startSync();
             } else {
                 document.getElementById('login-error').classList.remove('hidden');
             }
         };
 
-        // Chat Logic
-        function initChat() {
-            onChildAdded(chatRef, (data) => {
-                const msg = data.val();
-                displayMessage(msg);
+        function startSync() {
+            // Real-time listener
+            onChildAdded(chatRef, (snapshot) => {
+                const msg = snapshot.val();
+                renderMessage(msg);
             });
 
-            // Auto-cleanup Loop (Runs every 30 seconds)
-            setInterval(cleanupMessages, 30000);
+            // Auto-Delete Loop (Runs every 30 seconds)
+            setInterval(cleanup, 30000);
         }
 
         window.sendMessage = () => {
-            const text = document.getElementById('msg-input').value;
-            if (!text.trim()) return;
+            const input = document.getElementById('msg-input');
+            if (!input.value.trim()) return;
 
             push(chatRef, {
                 sender: currentUser,
-                text: text,
-                timestamp: Date.now()
+                text: input.value,
+                time: Date.now()
             });
-            document.getElementById('msg-input').value = '';
+            input.value = "";
         };
 
-        function displayMessage(msg) {
+        function renderMessage(msg) {
             const container = document.getElementById('messages');
-            const div = document.createElement('div');
             const isMe = msg.sender === currentUser;
+            const div = document.createElement('div');
             
-            div.className = `chat-bubble ${isMe ? 'sent' : 'received'}`;
-            div.innerHTML = `<div class="text-xs opacity-50 mb-1">${msg.sender}</div><div>${msg.text}</div>`;
+            div.className = `bubble ${isMe ? 'sent' : 'received'}`;
+            div.innerHTML = `
+                <div class="text-[10px] font-bold uppercase tracking-wider opacity-60">${msg.sender}</div>
+                <div>${msg.text}</div>
+            `;
             
             container.appendChild(div);
             container.scrollTop = container.scrollHeight;
         }
 
-        async function cleanupMessages() {
-            const twoMinutesAgo = Date.now() - (2 * 60 * 1000);
+        async function cleanup() {
+            const expiry = Date.now() - (2 * 60 * 1000);
             onValue(chatRef, (snapshot) => {
-                snapshot.forEach((childSnapshot) => {
-                    if (childSnapshot.val().timestamp < twoMinutesAgo) {
-                        remove(ref(db, `messages/${childSnapshot.key}`));
-                        location.reload(); // Refresh to clear UI
+                snapshot.forEach((child) => {
+                    if (child.val().time < expiry) {
+                        remove(ref(db, `chat_room/${child.key}`));
+                        // Optional: remove from local DOM if you want it to disappear instantly
+                        location.reload(); 
                     }
                 });
             }, { onlyOnce: true });
         }
 
-        // Admin Logic
+        // Admin functions
         window.showAdmin = () => document.getElementById('admin-modal').classList.remove('hidden');
         window.hideAdmin = () => document.getElementById('admin-modal').classList.add('hidden');
-        
         window.applyAdminChanges = () => {
-            const idx = document.getElementById('admin-user-idx').value;
-            const newName = document.getElementById('new-username').value;
-            const newPass = document.getElementById('new-pass').value;
-
-            if(users[idx]) {
-                if(newName) users[idx].name = newName;
-                if(newPass) users[idx].pass = newPass;
-                alert("Settings Updated locally for this session.");
+            const i = document.getElementById('admin-user-idx').value;
+            const n = document.getElementById('new-username').value;
+            const p = document.getElementById('new-pass').value;
+            if(users[i]) {
+                if(n) users[i].name = n;
+                if(p) users[i].pass = p;
+                alert("Updated locally.");
                 hideAdmin();
             }
         };
 
-        // Enter key support
+        // Handle Enter key for mobile keyboards
         document.getElementById('msg-input').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') sendMessage();
         });
