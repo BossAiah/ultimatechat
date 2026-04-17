@@ -2,45 +2,148 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Circle Chat</title>
     <style>
-        body { background: #000; color: #fff; font-family: sans-serif; height: 100vh; display: flex; flex-direction: column; }
-        .screen { display: none; flex-direction: column; height: 100%; padding: 20px; }
+        /* Mobile-First Layout */
+        :root {
+            --bg: #0b141a; /* Dark WhatsApp-style background */
+            --surf: #1a242d;
+            --acc: #0084ff;
+            --txt: #e9edef;
+            --sent: #005c4b; /* Dark Green for sent */
+            --recv: #202c33; /* Dark Gray for received */
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        
+        body { 
+            background: #000; 
+            color: var(--txt); 
+            height: 100vh; 
+            display: flex; 
+            justify-content: center;
+            overflow: hidden; 
+        }
+
+        /* The Vertical "Phone" Container */
+        #app { 
+            width: 100%; 
+            max-width: 500px; /* Limits width on desktop, full width on mobile */
+            height: 100dvh; 
+            background: var(--bg);
+            display: flex; 
+            flex-direction: column;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        .screen { display: none; flex-direction: column; height: 100%; width: 100%; }
         .active { display: flex; }
-        input { background: #1a1a1a; border: 1px solid #333; color: #fff; padding: 15px; margin: 10px 0; border-radius: 8px; }
-        button { background: #0084ff; color: #fff; border: none; padding: 15px; border-radius: 8px; font-weight: bold; }
-        #msg-list { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
-        .msg { padding: 10px; border-radius: 10px; max-width: 80%; font-size: 16px; }
-        .sent { align-self: flex-end; background: #0084ff; }
-        .received { align-self: flex-start; background: #333; }
-        .user-btn { background: #222; margin: 5px 0; text-align: left; }
+
+        /* Typography & Inputs */
+        h2, h3 { padding: 15px; text-align: center; border-bottom: 1px solid #222; }
+        input { 
+            background: var(--surf); 
+            border: 1px solid #333; 
+            color: #fff; 
+            padding: 16px; 
+            margin: 10px 20px; 
+            border-radius: 12px; 
+            font-size: 18px; /* Bigger for Android reading */
+        }
+
+        button { 
+            background: var(--acc); 
+            color: #fff; 
+            border: none; 
+            padding: 16px; 
+            margin: 10px 20px; 
+            border-radius: 12px; 
+            font-weight: bold; 
+            font-size: 18px; 
+        }
+
+        /* Contact List */
+        .contact-btn { 
+            background: var(--surf); 
+            margin: 8px 20px; 
+            text-align: left; 
+            padding: 20px;
+            font-size: 20px;
+            border-radius: 15px;
+        }
+
+        /* Chat Area - THE BIGGER VIEW */
+        #msg-list { 
+            flex: 1; 
+            overflow-y: auto; 
+            padding: 20px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 12px; 
+            background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); /* Subtle pattern */
+            background-blend-mode: overlay;
+        }
+
+        .msg { 
+            padding: 12px 16px; 
+            border-radius: 15px; 
+            max-width: 85%; 
+            font-size: 19px; /* Large readable text */
+            line-height: 1.4;
+            word-wrap: break-word;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+
+        .sent { align-self: flex-end; background: var(--sent); color: #fff; border-bottom-right-radius: 2px; }
+        .received { align-self: flex-start; background: var(--recv); color: #fff; border-bottom-left-radius: 2px; }
+
+        /* Bottom Input Bar */
+        .input-bar { 
+            background: var(--surf); 
+            padding: 10px 15px 30px 15px; /* Extra bottom padding for home bars */
+            display: flex; 
+            gap: 10px; 
+            align-items: center;
+        }
+
+        .input-bar input { flex: 1; margin: 0; border-radius: 25px; padding: 12px 20px; }
+        .input-bar button { margin: 0; border-radius: 50%; width: 50px; height: 50px; padding: 0; display: flex; align-items: center; justify-content: center; }
+
     </style>
 </head>
 <body>
 
+<div id="app">
     <div id="login-screen" class="screen active">
-        <h2 style="text-align:center">Circle Chat</h2>
-        <input type="text" id="user" placeholder="Username">
-        <input type="password" id="pass" placeholder="Password">
-        <button onclick="login()">Login</button>
-        <button onclick="initialize()" style="background:#111; margin-top:50px; font-size:10px;">Setup Users Once</button>
+        <h2 style="margin-top: 50px; border:none; font-size: 32px;">Circle Chat</h2>
+        <p style="text-align:center; color:#888;">Authorized Personnel Only</p>
+        <div style="margin-top: 40px; display:flex; flex-direction:column;">
+            <input type="text" id="user" placeholder="Username">
+            <input type="password" id="pass" placeholder="Password">
+            <button onclick="login()">LOGIN</button>
+        </div>
+        <button onclick="initialize()" style="background:transparent; color:#444; font-size:12px; margin-top:auto;">Sync Database</button>
     </div>
 
     <div id="main-screen" class="screen">
-        <h3>Contacts</h3>
-        <div id="contact-list" style="display:flex; flex-direction:column"></div>
-        <button onclick="location.reload()" style="background:red; margin-top:auto">Logout</button>
+        <h3>Chats</h3>
+        <div id="contact-list" style="display:flex; flex-direction:column; padding-top:10px;"></div>
+        <button onclick="location.reload()" style="background:#333; margin-top:auto; font-size:14px;">Sign Out</button>
     </div>
 
     <div id="chat-screen" class="screen">
-        <button onclick="showScreen('main-screen')">Back</button>
+        <div style="background: var(--surf); display:flex; align-items:center; padding: 5px 15px;">
+            <button onclick="showScreen('main-screen')" style="background:none; margin:0; padding:10px; color:var(--acc); font-size:24px;">←</button>
+            <h3 id="chat-title" style="border:none; padding:0; margin-left:10px;">User</h3>
+        </div>
         <div id="msg-list"></div>
-        <div style="display:flex; gap:5px">
-            <input type="text" id="msg-input" style="flex:1" placeholder="Type...">
-            <button onclick="send()">Send</button>
+        <div class="input-bar">
+            <input type="text" id="msg-input" placeholder="Message">
+            <button onclick="send()">➤</button>
         </div>
     </div>
+</div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -71,18 +174,15 @@
 
     window.initialize = async () => {
         for (let u in allowed) {
-            try {
-                await createUserWithEmailAndPassword(auth, `${u}@circle.com`, allowed[u]);
-            } catch (e) {}
+            try { await createUserWithEmailAndPassword(auth, `${u}@circle.com`, allowed[u]); } catch (e) {}
         }
-        alert("Ready!");
+        alert("System Synced.");
     };
 
     window.login = async () => {
-        const u = document.getElementById('user').value.toLowerCase();
+        const u = document.getElementById('user').value.toLowerCase().trim();
         const p = document.getElementById('pass').value;
         if (!allowed[u]) return alert("Access Denied");
-        
         try {
             const res = await signInWithEmailAndPassword(auth, `${u}@circle.com`, p);
             me = { uid: res.user.uid, name: u };
@@ -94,11 +194,11 @@
     function loadContacts() {
         const list = document.getElementById('contact-list');
         list.innerHTML = '';
-        ['admin', 'user27', 'sarina'].forEach(u => {
+        Object.keys(allowed).forEach(u => {
             if (u === me.name) return;
             const b = document.createElement('button');
-            b.className = 'user-btn';
-            b.innerText = u;
+            b.className = 'contact-btn';
+            b.innerHTML = `<span style="color:#888; margin-right:15px;">👤</span> ${u}`;
             b.onclick = () => startChat(u);
             list.appendChild(b);
         });
@@ -107,6 +207,7 @@
     function startChat(u) {
         targetId = u;
         const chatId = me.name < u ? `${me.name}_${u}` : `${u}_${me.name}`;
+        document.getElementById('chat-title').innerText = u;
         showScreen('chat-screen');
         onValue(ref(db, 'chats/' + chatId), (snap) => {
             const cont = document.getElementById('msg-list');
@@ -125,7 +226,7 @@
     window.send = () => {
         const i = document.getElementById('msg-input');
         const chatId = me.name < targetId ? `${me.name}_${targetId}` : `${targetId}_${me.name}`;
-        if (i.value) {
+        if (i.value.trim()) {
             push(ref(db, 'chats/' + chatId), { text: i.value, sender: me.name, time: serverTimestamp() });
             i.value = '';
         }
