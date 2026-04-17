@@ -14,395 +14,176 @@
             --admin-color: #ff4444;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-primary); height: 100vh; display: flex; justify-content: center; overflow: hidden; }
 
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-primary);
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-        }
+        #app { width: 100%; max-width: 500px; height: 100dvh; display: flex; flex-direction: column; position: relative; }
 
-        #app {
-            width: 100%;
-            max-width: 500px;
-            height: 100dvh;
-            display: flex;
-            flex-direction: column;
-            border-left: 1px solid #333;
-            border-right: 1px solid #333;
-            position: relative;
-            overflow: hidden;
-        }
-
-        /* --- Screens --- */
         .screen { display: none; flex-direction: column; height: 100%; width: 100%; padding: 20px; }
         .screen.active { display: flex; }
 
-        /* --- Auth UI --- */
-        .auth-container { text-align: center; justify-content: center; }
-        input, select {
-            background: var(--surface-color);
-            border: 1px solid #333;
-            color: white;
-            padding: 15px;
-            margin: 10px 0;
-            border-radius: 10px;
-            font-size: 16px;
-            width: 100%;
-        }
-        button {
-            background: var(--accent-color);
-            color: white;
-            border: none;
-            padding: 15px;
-            border-radius: 10px;
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 16px;
-            margin-top: 10px;
-        }
-        .text-link { color: var(--accent-color); cursor: pointer; margin-top: 15px; font-size: 14px; }
+        input { background: var(--surface-color); border: 1px solid #333; color: white; padding: 15px; margin: 10px 0; border-radius: 10px; font-size: 16px; width: 100%; }
+        button { background: var(--accent-color); color: white; border: none; padding: 15px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 16px; }
 
-        /* --- Header --- */
-        header {
-            padding: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #333;
-        }
+        header { padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; }
 
-        /* --- User List --- */
-        .user-item {
-            display: flex;
-            align-items: center;
-            padding: 15px;
-            border-bottom: 1px solid #1a1a1a;
-            cursor: pointer;
-        }
-        .status-dot { width: 12px; height: 12px; border-radius: 50%; margin-right: 10px; }
-        .online { background: #44ff44; }
-        .offline { background: #555; }
+        #user-list { flex: 1; overflow-y: auto; }
+        .user-item { padding: 15px; border-bottom: 1px solid #111; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
+        
+        #messages-container { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .msg { max-width: 80%; padding: 12px 16px; border-radius: 20px; font-size: 18px; line-height: 1.4; }
+        .sent { align-self: flex-end; background: var(--accent-color); }
+        .received { align-self: flex-start; background: var(--surface-color); }
 
-        /* --- Chat UI --- */
-        #messages-container {
-            flex: 1;
-            overflow-y: auto;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .msg {
-            max-width: 80%;
-            padding: 12px 16px;
-            border-radius: 20px;
-            font-size: 18px; /* Messenger-like size */
-            line-height: 1.4;
-            position: relative;
-        }
-        .msg.sent { align-self: flex-end; background: var(--accent-color); border-bottom-right-radius: 4px; }
-        .msg.received { align-self: flex-start; background: var(--surface-color); border-bottom-left-radius: 4px; }
-        .msg-info { font-size: 10px; opacity: 0.6; margin-top: 4px; display: block; }
-
-        .chat-input-area {
-            padding: 15px;
-            background: var(--bg-color);
-            display: flex;
-            gap: 10px;
-            border-top: 1px solid #333;
-        }
-
-        /* --- Admin UI --- */
-        .admin-item {
-            display: flex;
-            justify-content: space-between;
-            background: #111;
-            margin-bottom: 5px;
-            padding: 10px;
-        }
-        .del-btn { background: var(--admin-color); padding: 5px 10px; font-size: 12px; }
-
-        /* Animations */
-        .fade-in { animation: fadeIn 0.3s; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .chat-input-area { padding: 10px; display: flex; gap: 10px; border-top: 1px solid #333; background: #000; }
+        .admin-btn { background: var(--admin-color); padding: 5px 10px; font-size: 12px; }
     </style>
 </head>
 <body>
 
 <div id="app">
-    <div id="login-screen" class="screen auth-container active">
-        <h1>Circle Chat</h1>
+    <div id="login-screen" class="screen active">
+        <h1 style="text-align:center; margin-bottom:20px;">Circle Chat</h1>
         <input type="text" id="login-user" placeholder="Username">
         <input type="password" id="login-pass" placeholder="Password">
         <button onclick="handleLogin()">Login</button>
-        <p class="text-link" onclick="toggleAuth(false)">New here? Register</p>
-        <button id="setup-btn" style="background: #333; font-size: 12px; margin-top: 40px;">Initialize Default Users</button>
-    </div>
-
-    <div id="register-screen" class="screen auth-container">
-        <h1>Join Circle</h1>
-        <input type="text" id="reg-user" placeholder="Desired Username">
-        <input type="password" id="reg-pass" placeholder="Password">
-        <input type="text" id="reg-loc" placeholder="Location">
-        <button onclick="handleRegister()">Register</button>
-        <p class="text-link" onclick="toggleAuth(true)">Back to Login</p>
+        <button id="setup-btn" style="background:#333; margin-top:50px; font-size:12px;">Initialize Default Users</button>
     </div>
 
     <div id="main-screen" class="screen">
         <header>
             <h2 id="display-name">Chat</h2>
-            <div>
-                <button onclick="showAdmin()" id="admin-gate" style="display:none; padding: 5px; font-size:12px;">Admin</button>
-                <button onclick="showSettings()" style="padding: 5px; font-size:12px;">Settings</button>
-                <button onclick="logout()" style="padding: 5px; font-size:12px; background:#444">Logout</button>
-            </div>
+            <button onclick="logout()" style="font-size:12px; background:#444">Logout</button>
         </header>
-        <div style="padding: 10px; color: var(--text-secondary)">Active Users</div>
-        <div id="user-list" style="overflow-y: auto; flex: 1;"></div>
-        <button onclick="openChat('group_global', 'Global Group')" style="margin-top: 10px;">Global Group Chat</button>
+        <div id="user-list"></div>
     </div>
 
-    <div id="chat-screen" class="screen">
+    <div id="chat-screen" class="screen" style="padding:0;">
         <header>
-            <button onclick="goBack()" style="background:none; border:none; color:var(--accent-color); font-size:24px;">←</button>
-            <h3 id="chat-title">Username</h3>
-            <span></span>
+            <button onclick="showScreen('main-screen')" style="background:none; color:var(--accent-color);">Back</button>
+            <h3 id="chat-title">Chat</h3>
+            <div style="width:40px;"></div>
         </header>
         <div id="messages-container"></div>
         <div class="chat-input-area">
-            <input type="text" id="message-input" placeholder="Aa" onkeypress="if(event.key==='Enter') sendMessage()">
-            <button onclick="sendMessage()">Send</button>
-        </div>
-    </div>
-
-    <div id="admin-screen" class="screen">
-        <header>
-            <h3>Admin Panel</h3>
-            <button onclick="goBack()">Close</button>
-        </header>
-        <div id="admin-user-list" style="margin-top:20px"></div>
-    </div>
-
-    <div id="settings-screen" class="screen">
-        <header><h3>Settings</h3><button onclick="goBack()">Back</button></header>
-        <div style="padding: 20px 0;">
-            <p>Update Password:</p>
-            <input type="password" id="new-pass" placeholder="New Password">
-            <button onclick="updatePassword()">Update</button>
+            <input type="text" id="msg-input" placeholder="Type a message..." style="margin:0;">
+            <button onclick="sendMsg()">Send</button>
         </div>
     </div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, updatePassword as fbUpdatePassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, collection, query, onSnapshot, addDoc, serverTimestamp, orderBy, deleteDoc, getDocs, where, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getDatabase, ref, set, get, push, onValue, serverTimestamp, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyBCBFQ44up8oGRleBbT7GACOLY9zZsraAc",
         authDomain: "circle-chat-a2e81.firebaseapp.com",
+        databaseURL: "https://circle-chat-a2e81-default-rtdb.asia-southeast1.firebasedatabase.app",
         projectId: "circle-chat-a2e81",
         storageBucket: "circle-chat-a2e81.firebasestorage.app",
         messagingSenderId: "975339459589",
-        appId: "1:975339459589:web:6f4ced5e6f38d87d91b86c",
-        measurementId: "G-0SKZS9MCD1"
+        appId: "1:975339459589:web:6f4ced5e6f38d87d91b86c"
     };
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    const db = getFirestore(app);
+    const db = getDatabase(app);
 
-    let currentUser = null;
+    let userData = null;
     let activeChatId = null;
-    let unsubMessages = null;
 
-    // --- Auth Logic ---
-    window.toggleAuth = (isLogin) => {
-        document.getElementById('login-screen').classList.toggle('active', isLogin);
-        document.getElementById('register-screen').classList.toggle('active', !isLogin);
+    window.showScreen = (id) => {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
     };
 
-    // Persistence Check
     onAuthStateChanged(auth, async (user) => {
         if (user) {
-            const userDoc = await getDoc(doc(db, "users", user.uid));
-            if (userDoc.exists()) {
-                currentUser = { uid: user.uid, ...userDoc.data() };
-                document.getElementById('display-name').innerText = currentUser.username;
-                if (currentUser.username === 'admin') document.getElementById('admin-gate').style.display = 'block';
-                showScreen('main-screen');
-                loadUserList();
-            }
+            const snap = await get(ref(db, 'users/' + user.uid));
+            userData = snap.val();
+            document.getElementById('display-name').innerText = userData.username;
+            showScreen('main-screen');
+            loadUsers();
         } else {
             showScreen('login-screen');
         }
     });
 
     window.handleLogin = async () => {
-        const user = document.getElementById('login-user').value.toLowerCase();
-        const pass = document.getElementById('login-pass').value;
+        const u = document.getElementById('login-user').value.toLowerCase();
+        const p = document.getElementById('login-pass').value;
         try {
-            // Mapping username to a fake email for Firebase Auth
-            await signInWithEmailAndPassword(auth, `${user}@circle.com`, pass);
-        } catch (e) { alert("Invalid credentials"); }
-    };
-
-    window.handleRegister = async () => {
-        const user = document.getElementById('reg-user').value.toLowerCase();
-        const pass = document.getElementById('reg-pass').value;
-        const loc = document.getElementById('reg-loc').value;
-        
-        try {
-            const res = await createUserWithEmailAndPassword(auth, `${user}@circle.com`, pass);
-            await setDoc(doc(db, "users", res.user.uid), {
-                username: user,
-                location: loc,
-                uid: res.user.uid,
-                status: 'online'
-            });
-        } catch (e) { alert(e.message); }
+            await signInWithEmailAndPassword(auth, `${u}@circle.com`, p);
+        } catch (e) { alert("Error: " + e.message); }
     };
 
     window.logout = () => signOut(auth);
 
-    // --- UI Logic ---
-    function showScreen(id) {
-        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-    }
-
-    window.goBack = () => {
-        if (unsubMessages) unsubMessages();
-        showScreen('main-screen');
-    };
-
-    window.showSettings = () => showScreen('settings-screen');
-
-    window.updatePassword = async () => {
-        const newP = document.getElementById('new-pass').value;
-        if (newP.length < 6) return alert("Too short!");
-        try {
-            await fbUpdatePassword(auth.currentUser, newP);
-            alert("Success!");
-            goBack();
-        } catch (e) { alert(e.message); }
-    };
-
-    // --- User Management ---
-    function loadUserList() {
-        onSnapshot(collection(db, "users"), (snap) => {
+    function loadUsers() {
+        onValue(ref(db, 'users'), (snap) => {
             const list = document.getElementById('user-list');
-            const adminList = document.getElementById('admin-user-list');
             list.innerHTML = '';
-            adminList.innerHTML = '';
-
-            snap.forEach(docSnap => {
-                const data = docSnap.data();
-                if (data.uid === currentUser.uid) return;
-
-                // Main List
+            snap.forEach(child => {
+                const u = child.val();
+                if (u.uid === userData.uid) return;
                 const div = document.createElement('div');
-                div.className = 'user-item fade-in';
-                div.innerHTML = `<span class="status-dot online"></span> <span>${data.username} (${data.location})</span>`;
-                div.onclick = () => openChat(getChatId(currentUser.uid, data.uid), data.username);
+                div.className = 'user-item';
+                div.innerHTML = `<span>${u.username}</span>`;
+                if (userData.username === 'admin') {
+                    div.innerHTML += `<button class="admin-btn" onclick="event.stopPropagation(); deleteUser('${u.uid}')">Delete</button>`;
+                }
+                div.onclick = () => startChat(u);
                 list.appendChild(div);
-
-                // Admin List
-                const adiv = document.createElement('div');
-                adiv.className = 'admin-item';
-                adiv.innerHTML = `<span>${data.username}</span> <button class="del-btn" onclick="deleteUserAccount('${data.uid}')">Delete</button>`;
-                adminList.appendChild(adiv);
             });
         });
     }
 
-    function getChatId(id1, id2) {
-        return id1 < id2 ? `${id1}_${id2}` : `${id2}_${id1}`;
-    }
+    window.deleteUser = (uid) => { if(confirm("Delete user?")) remove(ref(db, 'users/' + uid)); };
 
-    // --- Chat Engine ---
-    window.openChat = (chatId, title) => {
-        activeChatId = chatId;
-        document.getElementById('chat-title').innerText = title;
-        document.getElementById('messages-container').innerHTML = '';
+    function startChat(target) {
+        activeChatId = userData.uid < target.uid ? `${userData.uid}_${target.uid}` : `${target.uid}_${userData.uid}`;
+        document.getElementById('chat-title').innerText = target.username;
         showScreen('chat-screen');
-
-        const q = query(collection(db, "chats", chatId, "messages"), orderBy("timestamp", "asc"));
         
-        unsubMessages = onSnapshot(q, (snap) => {
-            const container = document.getElementById('messages-container');
-            container.innerHTML = '';
+        onValue(ref(db, 'messages/' + activeChatId), (snap) => {
+            const cont = document.getElementById('messages-container');
+            cont.innerHTML = '';
             const now = Date.now();
-
-            snap.forEach(d => {
-                const msg = d.data();
-                const time = msg.timestamp?.toMillis() || now;
-                
-                // 5 Minute Expiry Filter
-                if (now - time > 300000) return; 
-
+            snap.forEach(mSnap => {
+                const m = mSnap.val();
+                if (now - m.time > 300000) return; // 5 minute expiry
                 const div = document.createElement('div');
-                div.className = `msg ${msg.senderId === currentUser.uid ? 'sent' : 'received'} fade-in`;
-                div.innerHTML = `
-                    ${msg.text}
-                    <span class="msg-info">${msg.senderName}</span>
-                `;
-                container.appendChild(div);
+                div.className = `msg ${m.sender === userData.uid ? 'sent' : 'received'}`;
+                div.innerText = m.text;
+                cont.appendChild(div);
             });
-            container.scrollTop = container.scrollHeight;
+            cont.scrollTop = cont.scrollHeight;
         });
-    };
+    }
 
-    window.sendMessage = async () => {
-        const input = document.getElementById('message-input');
-        const text = input.value.trim();
-        if (!text || !activeChatId) return;
-
+    window.sendMsg = () => {
+        const input = document.getElementById('msg-input');
+        if (!input.value.trim()) return;
+        push(ref(db, 'messages/' + activeChatId), {
+            text: input.value,
+            sender: userData.uid,
+            time: serverTimestamp()
+        });
         input.value = '';
-        await addDoc(collection(db, "chats", activeChatId, "messages"), {
-            text: text,
-            senderId: currentUser.uid,
-            senderName: currentUser.username,
-            timestamp: serverTimestamp(),
-            seen: false
-        });
     };
 
-    // --- Admin Logic ---
-    window.showAdmin = () => showScreen('admin-screen');
-
-    window.deleteUserAccount = async (uid) => {
-        if(confirm("Permanently delete this user?")) {
-            await deleteDoc(doc(db, "users", uid));
-            // Note: Real Firebase User Auth deletion requires admin SDK, 
-            // but this removes them from our app's database.
-        }
-    };
-
-    // --- Setup Logic (One-time helper) ---
     document.getElementById('setup-btn').onclick = async () => {
-        const users = [
-            { u: 'admin', p: '1818', l: 'HQ' },
-            { u: 'user27', p: '1704', l: 'Mobile' },
-            { u: 'sarina', p: '1704', l: 'Web' }
-        ];
-
-        for (let user of users) {
+        const defs = [{u:'admin',p:'1818'}, {u:'user27',p:'1704'}, {u:'sarina',p:'1704'}];
+        for (let d of defs) {
             try {
-                const res = await createUserWithEmailAndPassword(auth, `${user.u}@circle.com`, user.p);
-                await setDoc(doc(db, "users", res.user.uid), {
-                    username: user.u,
-                    location: user.l,
-                    uid: res.user.uid
-                });
-            } catch (e) { console.log(user.u + " already exists"); }
+                const r = await createUserWithEmailAndPassword(auth, `${d.u}@circle.com`, d.p);
+                await set(ref(db, 'users/' + r.user.uid), { username: d.u, uid: r.user.uid });
+            } catch (e) {}
         }
-        alert("Defaults Ready! Use the login now.");
+        alert("System Initialized!");
     };
-
 </script>
 </body>
 </html>
