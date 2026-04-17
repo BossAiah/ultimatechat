@@ -2,177 +2,133 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Circle Chat</title>
     <style>
-        :root { --bg: #000; --surf: #1a1a1a; --acc: #0084ff; --txt: #fff; }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, sans-serif; }
-        body { background: var(--bg); color: var(--txt); height: 100vh; display: flex; justify-content: center; overflow: hidden; }
-        #app { width: 100%; max-width: 500px; height: 100dvh; display: flex; flex-direction: column; }
-        .screen { display: none; flex-direction: column; height: 100%; width: 100%; padding: 20px; }
-        .screen.active { display: flex; }
-        input { background: var(--surf); border: 1px solid #333; color: white; padding: 15px; margin: 10px 0; border-radius: 12px; font-size: 16px; width: 100%; }
-        button { background: var(--acc); color: white; border: none; padding: 15px; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 16px; }
-        header { padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; }
-        .user-list { flex: 1; overflow-y: auto; }
-        .user-item { padding: 18px; border-bottom: 1px solid #111; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: #080808; }
-        #messages-container { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .msg { max-width: 80%; padding: 12px 16px; border-radius: 18px; font-size: 17px; line-height: 1.4; word-wrap: break-word; }
-        .sent { align-self: flex-end; background: var(--acc); }
-        .received { align-self: flex-start; background: var(--surf); }
-        .chat-input-area { padding: 15px; display: flex; gap: 10px; border-top: 1px solid #333; background: #000; }
-        .del-btn { background: #ff4444; padding: 5px 10px; font-size: 12px; border-radius: 6px; }
+        body { background: #000; color: #fff; font-family: sans-serif; height: 100vh; display: flex; flex-direction: column; }
+        .screen { display: none; flex-direction: column; height: 100%; padding: 20px; }
+        .active { display: flex; }
+        input { background: #1a1a1a; border: 1px solid #333; color: #fff; padding: 15px; margin: 10px 0; border-radius: 8px; }
+        button { background: #0084ff; color: #fff; border: none; padding: 15px; border-radius: 8px; font-weight: bold; }
+        #msg-list { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+        .msg { padding: 10px; border-radius: 10px; max-width: 80%; font-size: 16px; }
+        .sent { align-self: flex-end; background: #0084ff; }
+        .received { align-self: flex-start; background: #333; }
+        .user-btn { background: #222; margin: 5px 0; text-align: left; }
     </style>
 </head>
 <body>
 
-<div id="app">
     <div id="login-screen" class="screen active">
-        <h1 style="text-align:center; margin: 40px 0;">Circle Chat</h1>
-        <input type="text" id="login-user" placeholder="Username">
-        <input type="password" id="login-pass" placeholder="Password">
-        <button onclick="handleLogin()">Login</button>
-        <button id="setup-btn" style="background:#222; margin-top: auto; font-size:12px;">Initialize Default Users</button>
+        <h2 style="text-align:center">Circle Chat</h2>
+        <input type="text" id="user" placeholder="Username">
+        <input type="password" id="pass" placeholder="Password">
+        <button onclick="login()">Login</button>
+        <button onclick="initialize()" style="background:#111; margin-top:50px; font-size:10px;">Setup Users Once</button>
     </div>
 
     <div id="main-screen" class="screen">
-        <header>
-            <h2 id="display-name">Chat</h2>
-            <button onclick="logout()" style="font-size:12px; background:#333">Logout</button>
-        </header>
-        <div id="user-list" class="user-list"></div>
+        <h3>Contacts</h3>
+        <div id="contact-list" style="display:flex; flex-direction:column"></div>
+        <button onclick="location.reload()" style="background:red; margin-top:auto">Logout</button>
     </div>
 
-    <div id="chat-screen" class="screen" style="padding:0;">
-        <header>
-            <button onclick="showScreen('main-screen')" style="background:none; color:var(--acc); font-size: 18px;">Back</button>
-            <h3 id="chat-title">User</h3>
-            <div style="width:50px"></div>
-        </header>
-        <div id="messages-container"></div>
-        <div class="chat-input-area">
-            <input type="text" id="msg-input" placeholder="Message..." style="margin:0;">
-            <button onclick="sendMsg()">Send</button>
+    <div id="chat-screen" class="screen">
+        <button onclick="showScreen('main-screen')">Back</button>
+        <div id="msg-list"></div>
+        <div style="display:flex; gap:5px">
+            <input type="text" id="msg-input" style="flex:1" placeholder="Type...">
+            <button onclick="send()">Send</button>
         </div>
     </div>
-</div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getDatabase, ref, set, get, push, onValue, serverTimestamp, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getDatabase, ref, set, push, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    const firebaseConfig = {
+    const config = {
         apiKey: "AIzaSyA44XF2mdWb5LWxd9aoHcZjvaIIR3kFOGM",
         authDomain: "newchat-5365d.firebaseapp.com",
         projectId: "newchat-5365d",
+        databaseURL: "https://newchat-5365d-default-rtdb.asia-southeast1.firebasedatabase.app",
         storageBucket: "newchat-5365d.firebasestorage.app",
-        messagingSenderId: "1060702317444",
-        appId: "1:1060702317444:web:54ca79a822817bd9674bd1",
-        databaseURL: "https://newchat-5365d-default-rtdb.firebaseio.com"
+        appId: "1:1060702317444:web:54ca79a822817bd9674bd1"
     };
 
-    const app = initializeApp(firebaseConfig);
+    const app = initializeApp(config);
     const auth = getAuth(app);
     const db = getDatabase(app);
 
-    let userData = null;
-    let activeChatId = null;
+    let me = null;
+    let targetId = null;
+    const allowed = { 'admin': '1818', 'user27': '1704', 'sarina': '1704' };
 
     window.showScreen = (id) => {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.getElementById(id).classList.add('active');
     };
 
-    onAuthStateChanged(auth, async (user) => {
-        if (user) {
-            const snap = await get(ref(db, 'users/' + user.uid));
-            if (snap.exists()) {
-                userData = snap.val();
-                document.getElementById('display-name').innerText = userData.username;
-                showScreen('main-screen');
-                loadUsers();
-            }
-        } else {
-            showScreen('login-screen');
+    window.initialize = async () => {
+        for (let u in allowed) {
+            try {
+                await createUserWithEmailAndPassword(auth, `${u}@circle.com`, allowed[u]);
+            } catch (e) {}
         }
-    });
-
-    window.handleLogin = async () => {
-        const u = document.getElementById('login-user').value.toLowerCase().trim();
-        const p = document.getElementById('login-pass').value;
-        try {
-            await signInWithEmailAndPassword(auth, `${u}@circle.com`, p);
-        } catch (e) { 
-            console.error(e);
-            alert("Login failed. Make sure you clicked 'Initialize' and enabled Email/Password in Firebase."); 
-        }
+        alert("Ready!");
     };
 
-    window.logout = () => signOut(auth);
+    window.login = async () => {
+        const u = document.getElementById('user').value.toLowerCase();
+        const p = document.getElementById('pass').value;
+        if (!allowed[u]) return alert("Access Denied");
+        
+        try {
+            const res = await signInWithEmailAndPassword(auth, `${u}@circle.com`, p);
+            me = { uid: res.user.uid, name: u };
+            loadContacts();
+            showScreen('main-screen');
+        } catch (e) { alert("Wrong Password"); }
+    };
 
-    function loadUsers() {
-        onValue(ref(db, 'users'), (snap) => {
-            const list = document.getElementById('user-list');
-            list.innerHTML = '';
-            snap.forEach(child => {
-                const u = child.val();
-                if (u.uid === userData.uid) return;
-                const div = document.createElement('div');
-                div.className = 'user-item';
-                div.innerHTML = `<span>${u.username}</span>`;
-                if (userData.username === 'admin') {
-                    div.innerHTML += `<button class="del-btn" onclick="event.stopPropagation(); deleteUser('${u.uid}')">Delete</button>`;
-                }
-                div.onclick = () => startChat(u);
-                list.appendChild(div);
-            });
+    function loadContacts() {
+        const list = document.getElementById('contact-list');
+        list.innerHTML = '';
+        ['admin', 'user27', 'sarina'].forEach(u => {
+            if (u === me.name) return;
+            const b = document.createElement('button');
+            b.className = 'user-btn';
+            b.innerText = u;
+            b.onclick = () => startChat(u);
+            list.appendChild(b);
         });
     }
 
-    window.deleteUser = (uid) => { if(confirm("Delete user?")) remove(ref(db, 'users/' + uid)); };
-
-    function startChat(target) {
-        activeChatId = userData.uid < target.uid ? `${userData.uid}_${target.uid}` : `${target.uid}_${userData.uid}`;
-        document.getElementById('chat-title').innerText = target.username;
+    function startChat(u) {
+        targetId = u;
+        const chatId = me.name < u ? `${me.name}_${u}` : `${u}_${me.name}`;
         showScreen('chat-screen');
-        
-        onValue(ref(db, 'messages/' + activeChatId), (snap) => {
-            const cont = document.getElementById('messages-container');
+        onValue(ref(db, 'chats/' + chatId), (snap) => {
+            const cont = document.getElementById('msg-list');
             cont.innerHTML = '';
-            const now = Date.now();
-            snap.forEach(mSnap => {
-                const m = mSnap.val();
-                if (now - m.time > 300000) return; // 5 minute auto-delete
+            snap.forEach(m => {
+                const data = m.val();
                 const div = document.createElement('div');
-                div.className = `msg ${m.sender === userData.uid ? 'sent' : 'received'}`;
-                div.innerText = m.text;
+                div.className = `msg ${data.sender === me.name ? 'sent' : 'received'}`;
+                div.innerText = data.text;
                 cont.appendChild(div);
             });
             cont.scrollTop = cont.scrollHeight;
         });
     }
 
-    window.sendMsg = () => {
-        const input = document.getElementById('msg-input');
-        if (!input.value.trim()) return;
-        push(ref(db, 'messages/' + activeChatId), {
-            text: input.value,
-            sender: userData.uid,
-            time: serverTimestamp()
-        });
-        input.value = '';
-    };
-
-    document.getElementById('setup-btn').onclick = async () => {
-        const defs = [{u:'admin',p:'1818'}, {u:'user27',p:'1704'}, {u:'sarina',p:'1704'}];
-        for (let d of defs) {
-            try {
-                const r = await createUserWithEmailAndPassword(auth, `${d.u}@circle.com`, d.p);
-                await set(ref(db, 'users/' + r.user.uid), { username: d.u, uid: r.user.uid });
-            } catch (e) { console.warn(d.u + " might already exist."); }
+    window.send = () => {
+        const i = document.getElementById('msg-input');
+        const chatId = me.name < targetId ? `${me.name}_${targetId}` : `${targetId}_${me.name}`;
+        if (i.value) {
+            push(ref(db, 'chats/' + chatId), { text: i.value, sender: me.name, time: serverTimestamp() });
+            i.value = '';
         }
-        alert("System Initialized! Try login now.");
     };
 </script>
 </body>
